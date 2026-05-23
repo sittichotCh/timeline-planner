@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.idea/
+*.iml
+.claude
+
+# Backend binary
+backend/timeline-planner
+backend/timeline-planner.exe
+
+# Environment
+.env
+.env.local
+backend/data/
+*.exe
+.playwright-mcp
