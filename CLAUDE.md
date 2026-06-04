@@ -59,6 +59,10 @@ All under `/api`:
 - `GET /tasks`, `GET /tasks/:email`, `POST /tasks` (upsert), `DELETE /tasks/:task_id`
 - `GET /jira/config`, `POST /jira/sync`
 
+## MCP & Tools
+- **Context7:** Use Context7 to resolve up-to-date library documentation before answering questions or writing code that depends on React, Tailwind CSS, Vite, Gin, or any other dependency. Always prefer Context7 docs over training data when available.
+- **Playwright:** Use Playwright MCP to verify UI changes in a real browser — navigate, click, screenshot, and inspect the DOM before reporting a frontend task as complete.
+
 ## Key Constraints
 - **Jira is read-only.** Never send mutation requests to Jira. The system only fetches issues via JQL search.
 - **Frontend must use strict TypeScript.** No `any` types.

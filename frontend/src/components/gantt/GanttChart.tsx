@@ -8,7 +8,8 @@ import { TaskBar } from "./TaskBar";
 import { EventTooltip } from "./EventTooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, ZoomIn } from "lucide-react";
+import { CalendarDays, Download, ZoomIn } from "lucide-react";
+import { exportTimelineToXlsx } from "@/lib/exportXlsx";
 
 interface GanttChartProps {
   members: Member[];
@@ -265,6 +266,16 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
           <Button variant="destructive" size="xs" onClick={scrollToToday}>
             <CalendarDays />
             Today
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() =>
+              exportTimelineToXlsx(members, tasks, events, deadlines, rangeStartStr, rangeEndStr)
+            }
+          >
+            <Download />
+            Export
           </Button>
         </div>
         <div className="flex items-center gap-3">
