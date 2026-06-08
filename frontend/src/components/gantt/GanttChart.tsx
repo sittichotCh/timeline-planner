@@ -132,8 +132,11 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
   const todayOffset = (diffDays(today, rangeStart) + 0.5) * columnWidth;
 
   const { team, personal } = useMemo(() => splitEvents(events), [events]);
-  const scheduledTasks = useMemo(() => tasks.filter((t) => t.start_date), [tasks]);
-  const unscheduledTasks = useMemo(() => tasks.filter((t) => !t.start_date), [tasks]);
+  // DONE tasks drop off the timeline entirely — both their rows and their
+  // contribution to member workload totals.
+  const visibleTasks = useMemo(() => tasks.filter((t) => t.plan_status !== "DONE"), [tasks]);
+  const scheduledTasks = useMemo(() => visibleTasks.filter((t) => t.start_date), [visibleTasks]);
+  const unscheduledTasks = useMemo(() => visibleTasks.filter((t) => !t.start_date), [visibleTasks]);
 
   const rows = useMemo((): RowItem[] => {
     const result: RowItem[] = [];
@@ -271,7 +274,7 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
             variant="outline"
             size="xs"
             onClick={() =>
-              exportTimelineToXlsx(members, tasks, events, deadlines, rangeStartStr, rangeEndStr)
+              exportTimelineToXlsx(members, visibleTasks, events, deadlines, rangeStartStr, rangeEndStr, jiraBaseUrl)
             }
           >
             <Download />

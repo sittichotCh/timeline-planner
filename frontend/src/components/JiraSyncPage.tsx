@@ -103,6 +103,7 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
       start_date: "",
       effort: 1,
       rank: 0,
+      plan_status: "OPEN",
     };
     try {
       return await upsertTask(task);

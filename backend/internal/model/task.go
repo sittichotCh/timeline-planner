@@ -10,4 +10,5 @@ type TaskSetting struct {
 	Effort      int    `json:"effort"`
 	DeadlineID  string `json:"deadline_id"`
 	Rank        int    `json:"rank"`
+	PlanStatus  string `json:"plan_status"`
 }

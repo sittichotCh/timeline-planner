@@ -97,6 +97,20 @@ export function TaskEditModal({ task, members, deadlines, onSave, onClose }: Tas
           )}
 
           <div>
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Status</Label>
+            <Select value={form.plan_status} onValueChange={(val) => setForm({ ...form, plan_status: val as TaskSetting["plan_status"] })}>
+              <SelectTrigger className="w-full h-8 text-[12px] mt-1">
+                <SelectValue>{form.plan_status}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="OPEN">OPEN</SelectItem>
+                <SelectItem value="WIP">WIP</SelectItem>
+                <SelectItem value="DONE">DONE</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Assignee</Label>
             <Select value={form.member_email || NONE} onValueChange={(val) => setForm({ ...form, member_email: val === NONE ? "" : String(val) })}>
               <SelectTrigger className="w-full h-8 text-[12px] mt-1">

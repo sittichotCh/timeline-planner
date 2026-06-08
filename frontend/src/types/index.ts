@@ -1,5 +1,6 @@
 export type EventType = "leave" | "oncall" | "holiday" | "other";
 export type EventScope = "personal" | "team";
+export type TaskStatus = "OPEN" | "WIP" | "DONE";
 
 export interface Member {
   email: string;
@@ -30,6 +31,7 @@ export interface TaskSetting {
   effort: number;
   deadline_id?: string;
   rank: number;
+  plan_status: TaskStatus;
 }
 
 export interface Deadline {

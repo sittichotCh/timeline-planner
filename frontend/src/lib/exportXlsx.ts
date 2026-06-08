@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import type { Member, TaskSetting, CalendarEvent, Deadline } from "@/types";
-import { parseDate, formatDate, generateDateRange, getWorkingDays } from "./dates";
+import { parseDate, formatDate, generateDateRange, getWorkingDays, isWeekend } from "./dates";
 
 const EVENT_FILL: ExcelJS.Fill = {
   type: "pattern",
@@ -12,6 +12,12 @@ const EFFORT_FILL: ExcelJS.Fill = {
   type: "pattern",
   pattern: "solid",
   fgColor: { argb: "FF00FF00" },
+};
+
+const WEEKEND_FILL: ExcelJS.Fill = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FFFFD1DC" },
 };
 
 const DEADLINE_COLOR_MAP: Record<string, string> = {
@@ -70,6 +76,7 @@ export async function exportTimelineToXlsx(
   deadlines: Deadline[],
   rangeStart: string,
   rangeEnd: string,
+  jiraBaseUrl = "",
 ): Promise<void> {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Timeline");
@@ -136,6 +143,9 @@ export async function exportTimelineToXlsx(
     cell.value = dates[i]!.getDate();
     cell.alignment = { horizontal: "center" };
     cell.font = { size: 8 };
+    if (isWeekend(dates[i]!)) {
+      cell.fill = WEEKEND_FILL;
+    }
     cell.border = {
       left: THIN_BORDER,
       right: THIN_BORDER,
@@ -171,6 +181,8 @@ export async function exportTimelineToXlsx(
       const cell = memberRow.getCell(dateColStart + i);
       if (eventDays.has(formatDate(dates[i]!))) {
         cell.fill = EVENT_FILL;
+      } else if (isWeekend(dates[i]!)) {
+        cell.fill = WEEKEND_FILL;
       }
       cell.border = {
         top: THIN_BORDER,
@@ -184,9 +196,19 @@ export async function exportTimelineToXlsx(
       const task = memberTasks[tIdx]!;
       const isLast = tIdx === memberTasks.length - 1;
       const taskRow = ws.getRow(currentRow);
-      taskRow.getCell(1).value = task.task_id;
-      taskRow.getCell(1).font = { size: 9 };
-      taskRow.getCell(1).border = {
+      const taskIdCell = taskRow.getCell(1);
+      if (jiraBaseUrl) {
+        taskIdCell.value = {
+          text: task.task_id,
+          hyperlink: `${jiraBaseUrl}/browse/${task.task_id}`,
+          tooltip: `Open ${task.task_id} in Jira`,
+        };
+        taskIdCell.font = { size: 9, color: { argb: "FF0563C1" }, underline: true };
+      } else {
+        taskIdCell.value = task.task_id;
+        taskIdCell.font = { size: 9 };
+      }
+      taskIdCell.border = {
         left: THIN_BORDER,
         right: THIN_BORDER,
         ...(isLast ? { bottom: THIN_BORDER } : {}),
@@ -204,6 +226,8 @@ export async function exportTimelineToXlsx(
           cell.fill = EFFORT_FILL;
         } else if (eventDays.has(dateStr)) {
           cell.fill = EVENT_FILL;
+        } else if (isWeekend(dates[i]!)) {
+          cell.fill = WEEKEND_FILL;
         }
         if (isLast || dateColStart + i === lastDateCol) {
           cell.border = {

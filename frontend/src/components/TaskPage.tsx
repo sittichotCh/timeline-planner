@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Member, TaskSetting, JiraIssue, Deadline } from "@/types";
+import type { Member, TaskSetting, TaskStatus, JiraIssue, Deadline } from "@/types";
 import { deleteTask, fetchTasks, reorderTasks, upsertTask } from "@/api/tasks";
 import { fetchJiraConfig, syncJira } from "@/api/jira";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { TaskEditModal } from "@/components/TaskEditModal";
 import { Search, RefreshCw, ClipboardCheck, Pencil, Trash2, ExternalLink, GripVertical } from "lucide-react";
+
+const planStatusClass: Record<TaskStatus, string> = {
+  OPEN: "text-slate-600",
+  WIP: "text-amber-600",
+  DONE: "text-green-600",
+};
 
 interface TaskPageProps {
   tasks: TaskSetting[];
@@ -218,7 +224,8 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
                 <th className="px-3 py-2 w-[140px]">Task ID</th>
                 <th className="px-3 py-2">Summary</th>
                 <th className="px-3 py-2 w-[90px]">Priority</th>
-                <th className="px-3 py-2 w-[110px]">Status</th>
+                <th className="px-3 py-2 w-[110px]">Jira Status</th>
+                <th className="px-3 py-2 w-[100px]">State</th>
                 <th className="px-3 py-2 w-[160px]">Assignee</th>
                 <th className="px-3 py-2 w-[130px]">Start Date</th>
                 <th className="px-3 py-2 w-[120px]">Effort</th>
@@ -275,6 +282,11 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
                       ) : (
                         <span className="text-muted-foreground/50">—</span>
                       )}
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <Badge variant="outline" className={`text-[10px] font-semibold ${planStatusClass[task.plan_status] ?? ""}`}>
+                        {task.plan_status}
+                      </Badge>
                     </td>
                     <td className="px-3 py-1.5 text-[12px] text-muted-foreground">
                       {getMemberName(task.member_email)}

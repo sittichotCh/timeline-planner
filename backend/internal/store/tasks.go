@@ -10,7 +10,7 @@ import (
 
 const tasksFile = "tasks.csv"
 
-var tasksHeader = []string{"task_id", "summary", "priority", "status", "member_email", "start_date", "effort", "deadline_id", "rank"}
+var tasksHeader = []string{"task_id", "summary", "priority", "status", "member_email", "start_date", "effort", "deadline_id", "rank", "plan_status"}
 
 // effortDaysFromScale converts a (effort, time_scale) pair from the legacy CSV
 // format to a number of working days. Mirrors the frontend's old effortToDays.
@@ -43,6 +43,10 @@ func parseTaskRow(header []string, row []string) model.TaskSetting {
 		effort = effortDaysFromScale(effort, scale)
 	}
 	rank, _ := strconv.Atoi(get("rank"))
+	planStatus := get("plan_status")
+	if planStatus == "" {
+		planStatus = "OPEN"
+	}
 	return model.TaskSetting{
 		TaskID:      get("task_id"),
 		Summary:     get("summary"),
@@ -53,11 +57,16 @@ func parseTaskRow(header []string, row []string) model.TaskSetting {
 		Effort:      effort,
 		DeadlineID:  get("deadline_id"),
 		Rank:        rank,
+		PlanStatus:  planStatus,
 	}
 }
 
 func taskToRow(t model.TaskSetting) []string {
-	return []string{t.TaskID, t.Summary, t.Priority, t.Status, t.MemberEmail, t.StartDate, strconv.Itoa(t.Effort), t.DeadlineID, strconv.Itoa(t.Rank)}
+	planStatus := t.PlanStatus
+	if planStatus == "" {
+		planStatus = "OPEN"
+	}
+	return []string{t.TaskID, t.Summary, t.Priority, t.Status, t.MemberEmail, t.StartDate, strconv.Itoa(t.Effort), t.DeadlineID, strconv.Itoa(t.Rank), planStatus}
 }
 
 func sortTasksByRank(tasks []model.TaskSetting) {
