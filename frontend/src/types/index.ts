@@ -55,5 +55,7 @@ export interface JiraIssue {
     priority?: {
       name?: string;
     } | null;
+    /** Normalized value of the Jira "Dev points" custom field, mapped to effort. */
+    dev_points?: number | null;
   };
 }

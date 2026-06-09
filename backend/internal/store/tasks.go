@@ -14,7 +14,7 @@ var tasksHeader = []string{"task_id", "summary", "priority", "status", "member_e
 
 // effortDaysFromScale converts a (effort, time_scale) pair from the legacy CSV
 // format to a number of working days. Mirrors the frontend's old effortToDays.
-func effortDaysFromScale(effort int, scale string) int {
+func effortDaysFromScale(effort float64, scale string) float64 {
 	switch scale {
 	case "week":
 		return effort * 5
@@ -38,7 +38,7 @@ func parseTaskRow(header []string, row []string) model.TaskSetting {
 		}
 		return ""
 	}
-	effort, _ := strconv.Atoi(get("effort"))
+	effort, _ := strconv.ParseFloat(get("effort"), 64)
 	if scale := get("time_scale"); scale != "" {
 		effort = effortDaysFromScale(effort, scale)
 	}
@@ -66,7 +66,7 @@ func taskToRow(t model.TaskSetting) []string {
 	if planStatus == "" {
 		planStatus = "OPEN"
 	}
-	return []string{t.TaskID, t.Summary, t.Priority, t.Status, t.MemberEmail, t.StartDate, strconv.Itoa(t.Effort), t.DeadlineID, strconv.Itoa(t.Rank), planStatus}
+	return []string{t.TaskID, t.Summary, t.Priority, t.Status, t.MemberEmail, t.StartDate, strconv.FormatFloat(t.Effort, 'g', -1, 64), t.DeadlineID, strconv.Itoa(t.Rank), planStatus}
 }
 
 func sortTasksByRank(tasks []model.TaskSetting) {

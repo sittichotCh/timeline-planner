@@ -1,7 +1,9 @@
 import { useState } from "react";
 import type { Member, TaskSetting, Deadline } from "@/types";
 import { fetchTasks, upsertTask } from "@/api/tasks";
-import { Button } from "@/components/ui/button";
+import { syncJira } from "@/api/jira";
+import { devPointsToEffort } from "@/lib/jira";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X } from "lucide-react";
+import { X, RefreshCw, ExternalLink } from "lucide-react";
 
 interface TaskEditModalProps {
   task: TaskSetting;
   members: Member[];
   deadlines: Deadline[];
+  jiraBaseUrl?: string;
   onSave: (saved: TaskSetting, allTasks?: TaskSetting[]) => void;
   onClose: () => void;
 }
@@ -32,9 +35,10 @@ const priorityBadgeClass: Record<string, string> = {
   Lowest: "bg-muted text-muted-foreground border-border",
 };
 
-export function TaskEditModal({ task, members, deadlines, onSave, onClose }: TaskEditModalProps) {
+export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSave, onClose }: TaskEditModalProps) {
   const [form, setForm] = useState<TaskSetting>(() => ({ ...task }));
   const [error, setError] = useState<string | null>(null);
+  const [resyncing, setResyncing] = useState(false);
   const [prevTaskId, setPrevTaskId] = useState(task.task_id);
 
   if (task.task_id !== prevTaskId) {
@@ -69,6 +73,32 @@ export function TaskEditModal({ task, members, deadlines, onSave, onClose }: Tas
     }
   }
 
+  // Pull the latest summary / priority / Jira status / Dev points (→ effort)
+  // for just this issue into the form. The user still presses Save to persist.
+  async function handleResync() {
+    setResyncing(true);
+    setError(null);
+    try {
+      const result = await syncJira(`key = ${form.task_id}`, 1);
+      const issue = result.issues.find((i) => i.key === form.task_id) ?? result.issues[0];
+      if (!issue) {
+        setError("Issue not found in Jira");
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        summary: issue.fields?.summary ?? f.summary,
+        priority: issue.fields?.priority?.name ?? f.priority,
+        status: issue.fields?.status?.name ?? f.status,
+        effort: devPointsToEffort(issue.fields?.dev_points) ?? f.effort,
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Resync failed");
+    } finally {
+      setResyncing(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -82,6 +112,9 @@ export function TaskEditModal({ task, members, deadlines, onSave, onClose }: Tas
               <Badge variant="outline" className={`text-[10px] ${priorityBadgeClass[form.priority] ?? ""}`}>
                 {form.priority}
               </Badge>
+            )}
+            {form.status && (
+              <Badge variant="secondary" className="text-[10px]">{form.status}</Badge>
             )}
           </div>
           <Button variant="ghost" size="icon-xs" onClick={onClose}>
@@ -137,7 +170,7 @@ export function TaskEditModal({ task, members, deadlines, onSave, onClose }: Tas
 
           <div>
             <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Effort (days)</Label>
-            <Input type="number" min={1} className="h-8 !text-[12px] mt-1" value={form.effort} onChange={(e) => setForm({ ...form, effort: Number(e.target.value) })} />
+            <Input type="number" min={0.5} step={0.5} className="h-8 !text-[12px] mt-1" value={form.effort} onChange={(e) => setForm({ ...form, effort: Number(e.target.value) })} />
           </div>
 
           <div>
@@ -173,9 +206,30 @@ export function TaskEditModal({ task, members, deadlines, onSave, onClose }: Tas
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-3.5 border-t">
-          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
-          <Button size="sm" onClick={handleSave}>Save</Button>
+        <div className="flex items-center justify-between gap-2 px-5 py-3.5 border-t">
+          <div className="flex items-center gap-2">
+            {jiraBaseUrl && (
+              <>
+                <Button variant="outline" size="sm" onClick={handleResync} disabled={resyncing}>
+                  <RefreshCw className={resyncing ? "animate-spin" : ""} />
+                  {resyncing ? "Syncing..." : "Resync Jira"}
+                </Button>
+                <a
+                  href={`${jiraBaseUrl}/browse/${form.task_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  <ExternalLink />
+                  Open in Jira
+                </a>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+            <Button size="sm" onClick={handleSave}>Save</Button>
+          </div>
         </div>
       </div>
     </div>

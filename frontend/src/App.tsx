@@ -161,6 +161,7 @@ function App() {
             task={task}
             members={members}
             deadlines={deadlines}
+            jiraBaseUrl={jiraBaseUrl}
             onSave={(saved, allTasks) => {
               if (allTasks) {
                 setTasks(allTasks);

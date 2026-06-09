@@ -1,12 +1,43 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Member, TaskSetting, TaskStatus, JiraIssue, Deadline } from "@/types";
 import { deleteTask, fetchTasks, reorderTasks, upsertTask } from "@/api/tasks";
 import { fetchJiraConfig, syncJira } from "@/api/jira";
+import { devPointsToEffort } from "@/lib/jira";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TaskEditModal } from "@/components/TaskEditModal";
-import { Search, RefreshCw, ClipboardCheck, Pencil, Trash2, ExternalLink, GripVertical } from "lucide-react";
+import { Search, RefreshCw, ClipboardCheck, Pencil, Trash2, ExternalLink, GripVertical, X } from "lucide-react";
+
+const ALL = "__all__";
+const UNASSIGNED = "__unassigned__";
+
+const FILTER_STORAGE_KEY = "task-filters";
+
+interface SavedFilters {
+  state?: string;
+  jiraStatus?: string;
+  assignee?: string;
+}
+
+function loadFilters(): SavedFilters {
+  try {
+    return JSON.parse(localStorage.getItem(FILTER_STORAGE_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveFilters(patch: SavedFilters) {
+  localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({ ...loadFilters(), ...patch }));
+}
 
 const planStatusClass: Record<TaskStatus, string> = {
   OPEN: "text-slate-600",
@@ -34,6 +65,9 @@ const priorityBadgeClass: Record<string, string> = {
 export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEditId, onClearEditId }: TaskPageProps) {
   const [jiraBaseUrl, setJiraBaseUrl] = useState("");
   const [search, setSearch] = useState("");
+  const [stateFilter, setStateFilter] = useState<string>(() => loadFilters().state ?? ALL);
+  const [jiraStatusFilter, setJiraStatusFilter] = useState<string>(() => loadFilters().jiraStatus ?? ALL);
+  const [assigneeFilter, setAssigneeFilter] = useState<string>(() => loadFilters().assignee ?? ALL);
   const [editingTask, setEditingTask] = useState<TaskSetting | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [resyncing, setResyncing] = useState(false);
@@ -52,15 +86,50 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
     onClearEditId?.();
   }
 
-  const dragEnabled = search.trim() === "";
+  // Distinct Jira statuses and assignees present in the current task set.
+  const jiraStatuses = useMemo(
+    () => [...new Set(tasks.map((t) => t.status).filter((s): s is string => !!s))].sort(),
+    [tasks],
+  );
+  const assigneeEmails = useMemo(
+    () => [...new Set(tasks.map((t) => t.member_email))].sort((a, b) =>
+      getMemberName(a).localeCompare(getMemberName(b)),
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tasks, members],
+  );
 
-  const filteredTasks = search.trim()
-    ? tasks.filter((t) => {
-        const q = search.toLowerCase();
-        return t.task_id.toLowerCase().includes(q) || t.summary.toLowerCase().includes(q)
-          || getMemberName(t.member_email).toLowerCase().includes(q);
-      })
-    : tasks;
+  const filtersActive =
+    search.trim() !== "" || stateFilter !== ALL || jiraStatusFilter !== ALL || assigneeFilter !== ALL;
+  // Reordering ranks a subset incorrectly, so only allow drag with no filters.
+  const dragEnabled = !filtersActive;
+
+  const filteredTasks = tasks.filter((t) => {
+    const q = search.trim().toLowerCase();
+    if (
+      q &&
+      !(
+        t.task_id.toLowerCase().includes(q) ||
+        t.summary.toLowerCase().includes(q) ||
+        getMemberName(t.member_email).toLowerCase().includes(q)
+      )
+    )
+      return false;
+    if (stateFilter !== ALL && t.plan_status !== stateFilter) return false;
+    if (jiraStatusFilter !== ALL && (t.status ?? "") !== jiraStatusFilter) return false;
+    if (assigneeFilter === UNASSIGNED && t.member_email) return false;
+    if (assigneeFilter !== ALL && assigneeFilter !== UNASSIGNED && t.member_email !== assigneeFilter)
+      return false;
+    return true;
+  });
+
+  function clearFilters() {
+    setSearch("");
+    setStateFilter(ALL);
+    setJiraStatusFilter(ALL);
+    setAssigneeFilter(ALL);
+    saveFilters({ state: ALL, jiraStatus: ALL, assignee: ALL });
+  }
 
   async function handleDelete(taskId: string) {
     try {
@@ -157,6 +226,8 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
             summary: issue.fields?.summary ?? task.summary,
             priority: issue.fields?.priority?.name ?? task.priority,
             status: issue.fields?.status?.name ?? task.status,
+            // Re-apply Dev points → effort; keep the existing effort if unset.
+            effort: devPointsToEffort(issue.fields?.dev_points) ?? task.effort,
           };
           const saved = await upsertTask(updated);
           updatedTasks.push(saved);
@@ -174,21 +245,75 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-card">
+      <div className="flex items-center justify-between gap-3 px-4 py-2 border-b bg-card flex-wrap">
         <div className="flex items-center gap-3">
           <h2 className="text-[13px] font-semibold tracking-tight">Tasks</h2>
-          <Badge variant="secondary" className="text-[11px]">{tasks.length} tasks</Badge>
+          <Badge variant="secondary" className="text-[11px]">
+            {filtersActive ? `${filteredTasks.length} / ${tasks.length}` : `${tasks.length} tasks`}
+          </Badge>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
             <Search className="size-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
             <Input
               placeholder="Search tasks..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 w-56 h-7 text-[12px]"
+              className="pl-8 w-48 h-7 text-[12px]"
             />
           </div>
+
+          <Select value={stateFilter} onValueChange={(v) => { const nv = v ?? ALL; setStateFilter(nv); saveFilters({ state: nv }); }}>
+            <SelectTrigger size="sm" className="h-7 text-[12px] min-w-[108px]">
+              <SelectValue>{stateFilter === ALL ? "All States" : stateFilter}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All States</SelectItem>
+              <SelectItem value="OPEN">OPEN</SelectItem>
+              <SelectItem value="WIP">WIP</SelectItem>
+              <SelectItem value="DONE">DONE</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={jiraStatusFilter} onValueChange={(v) => { const nv = v ?? ALL; setJiraStatusFilter(nv); saveFilters({ jiraStatus: nv }); }}>
+            <SelectTrigger size="sm" className="h-7 text-[12px] min-w-[120px]">
+              <SelectValue>{jiraStatusFilter === ALL ? "All Jira Status" : jiraStatusFilter}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All Jira Status</SelectItem>
+              {jiraStatuses.map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={assigneeFilter} onValueChange={(v) => { const nv = v ?? ALL; setAssigneeFilter(nv); saveFilters({ assignee: nv }); }}>
+            <SelectTrigger size="sm" className="h-7 text-[12px] min-w-[130px]">
+              <SelectValue>
+                {assigneeFilter === ALL
+                  ? "All Assignees"
+                  : assigneeFilter === UNASSIGNED
+                    ? "Unassigned"
+                    : getMemberName(assigneeFilter)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All Assignees</SelectItem>
+              {assigneeEmails.map((email) => (
+                <SelectItem key={email || UNASSIGNED} value={email || UNASSIGNED}>
+                  {email ? getMemberName(email) : "Unassigned"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {filtersActive && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} title="Clear filters">
+              <X />
+              Clear
+            </Button>
+          )}
+
           {jiraBaseUrl && tasks.length > 0 && (
             <Button variant="outline" size="sm" onClick={handleResync} disabled={resyncing}>
               <RefreshCw className={resyncing ? "animate-spin" : ""} />
@@ -209,10 +334,10 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
               <ClipboardCheck className="size-6 text-muted-foreground" />
             </div>
             <p className="text-[13px] text-muted-foreground font-medium">
-              {search ? "No tasks matching search" : "No tasks yet"}
+              {filtersActive ? "No tasks match the filters" : "No tasks yet"}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">
-              {search ? "Try a different search term." : "Import tasks from Jira Sync."}
+              {filtersActive ? "Try adjusting or clearing the filters." : "Import tasks from Jira Sync."}
             </p>
           </div>
         ) : (
@@ -251,7 +376,7 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
                     <td className="px-1 py-1.5">
                       <div
                         className={`flex items-center justify-center ${dragEnabled ? "cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground" : "cursor-not-allowed text-muted-foreground/30"}`}
-                        title={dragEnabled ? "Drag to reorder" : "Clear search to reorder"}
+                        title={dragEnabled ? "Drag to reorder" : "Clear filters to reorder"}
                       >
                         <GripVertical className="size-3.5" />
                       </div>
@@ -338,6 +463,7 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
           task={editingTask}
           members={members}
           deadlines={deadlines}
+          jiraBaseUrl={jiraBaseUrl}
           onSave={(saved, allTasks) => {
             if (allTasks) {
               onTasksChange(allTasks);

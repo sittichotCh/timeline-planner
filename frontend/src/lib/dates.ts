@@ -22,7 +22,14 @@ export function startOfMonth(date: Date): Date {
 }
 
 export function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0]!;
+  // Format using LOCAL date parts. parseDate builds local-midnight Dates, so
+  // using toISOString() here (which converts to UTC) shifts the day back by
+  // one in positive-UTC-offset timezones — e.g. dragging a task saved the
+  // wrong (one day earlier) start_date. Local parts round-trip correctly.
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function parseDate(str: string): Date {

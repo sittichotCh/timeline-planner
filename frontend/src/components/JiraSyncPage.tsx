@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { JiraIssue, Member, TaskSetting } from "@/types";
 import { fetchJiraConfig, syncJira } from "@/api/jira";
+import { devPointsToEffort } from "@/lib/jira";
 import { upsertTask } from "@/api/tasks";
 import { createMember } from "@/api/members";
 import { Button } from "@/components/ui/button";
@@ -101,7 +102,7 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
       status: issue.fields?.status?.name ?? undefined,
       member_email: assigneeEmail,
       start_date: "",
-      effort: 1,
+      effort: devPointsToEffort(issue.fields?.dev_points) ?? 1,
       rank: 0,
       plan_status: "OPEN",
     };

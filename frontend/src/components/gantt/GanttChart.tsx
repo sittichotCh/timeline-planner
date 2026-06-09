@@ -8,8 +8,9 @@ import { TaskBar } from "./TaskBar";
 import { EventTooltip } from "./EventTooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Download, ZoomIn } from "lucide-react";
+import { CalendarDays, Download, ImageDown, ZoomIn } from "lucide-react";
 import { exportTimelineToXlsx } from "@/lib/exportXlsx";
+import { exportTimelineToPng } from "@/lib/exportPng";
 
 interface GanttChartProps {
   members: Member[];
@@ -120,6 +121,9 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
   const chartRef = useRef<HTMLDivElement>(null);
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const bodyWrapperRef = useRef<HTMLDivElement>(null);
+  const [exportingPng, setExportingPng] = useState(false);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -142,14 +146,18 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
     const result: RowItem[] = [];
     members.forEach((member, idx) => {
       const colorIdx = idx % memberPalettes.length;
-      const memberTasks = scheduledTasks.filter((t) => t.member_email === member.email);
+      // Member-assigned tasks all get a row — scheduled ones first, then
+      // unscheduled (e.g. freshly synced from Jira) shown as "Unscheduled".
+      const scheduled = scheduledTasks.filter((t) => t.member_email === member.email);
+      const unscheduled = unscheduledTasks.filter((t) => t.member_email === member.email);
+      const memberTasks = [...scheduled, ...unscheduled];
       result.push({ kind: "header", member, colorIdx, taskCount: memberTasks.length });
       memberTasks.forEach((task) => {
         result.push({ kind: "task", task, colorIdx, memberEmail: member.email });
       });
     });
     return result;
-  }, [members, scheduledTasks]);
+  }, [members, scheduledTasks, unscheduledTasks]);
 
   const totalBodyHeight = useMemo(() => {
     return rows.reduce((sum, row) => sum + (row.kind === "header" ? MEMBER_HEADER_HEIGHT : TASK_ROW_HEIGHT), 0);
@@ -220,6 +228,33 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
     return earliest * columnWidth;
   }, [scheduledTasks, rangeStart, columnWidth]);
 
+  // Assign each visible deadline a vertical "lane" so that labels which would
+  // overlap horizontally (deadlines on close-together dates) stack downward
+  // instead of colliding. Greedy left-to-right packing: a label drops to the
+  // next lane only when it would overrun the previous label in the lane above.
+  const deadlineLayout = useMemo(() => {
+    const CHAR_W = 5.2; // approx px per char at text-[9px] font-semibold
+    const LABEL_PADDING = 14; // px-1.5 both sides + small breathing room
+    const LANE_GAP = 6; // min horizontal gap between labels sharing a lane
+    const items = deadlines
+      .map((dl) => {
+        const offset = (diffDays(parseDate(dl.date), rangeStart) + 0.5) * columnWidth;
+        const labelStart = offset + 4; // label sits at left-1 (~4px) past the line
+        const labelWidth = dl.title.length * CHAR_W + LABEL_PADDING;
+        return { dl, offset, labelStart, labelEnd: labelStart + labelWidth };
+      })
+      .filter((it) => it.offset >= 0 && it.offset <= totalWidth)
+      .sort((a, b) => a.offset - b.offset);
+
+    const laneEnds: number[] = [];
+    return items.map((it) => {
+      let lane = 0;
+      while (lane < laneEnds.length && laneEnds[lane]! + LANE_GAP > it.labelStart) lane++;
+      laneEnds[lane] = it.labelEnd;
+      return { dl: it.dl, offset: it.offset, lane };
+    });
+  }, [deadlines, rangeStart, columnWidth, totalWidth]);
+
   useEffect(() => {
     const clientWidth = chartRef.current?.clientWidth ?? 0;
     let scrollLeft: number;
@@ -254,6 +289,30 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
     saveSettings({ zoom: ZOOM_LEVELS[idx]!.scale });
   }
 
+  async function handlePngExport() {
+    const container = timelineRef.current;
+    const headerScroll = headerScrollRef.current;
+    const bodyWrapper = bodyWrapperRef.current;
+    const sidebar = sidebarRef.current;
+    const chart = chartRef.current;
+    if (!container || !headerScroll || !bodyWrapper || !sidebar || !chart) return;
+    setExportingPng(true);
+    try {
+      await exportTimelineToPng({
+        container,
+        headerScroll,
+        bodyWrapper,
+        sidebar,
+        chart,
+        sidebarWidth: SIDEBAR_WIDTH,
+        totalWidth,
+        totalBodyHeight,
+      });
+    } finally {
+      setExportingPng(false);
+    }
+  }
+
   function handleChartScroll() {
     if (chartRef.current && sidebarRef.current) sidebarRef.current.scrollTop = chartRef.current.scrollTop;
     if (chartRef.current && headerScrollRef.current) headerScrollRef.current.scrollLeft = chartRef.current.scrollLeft;
@@ -279,6 +338,15 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
           >
             <Download />
             Export
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
+            disabled={exportingPng}
+            onClick={handlePngExport}
+          >
+            <ImageDown />
+            {exportingPng ? "Exporting…" : "PNG"}
           </Button>
         </div>
         <div className="flex items-center gap-3">
@@ -317,7 +385,7 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div ref={timelineRef} className="flex-1 overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex flex-shrink-0">
           <div className="flex-shrink-0 border-r border-b bg-card flex items-end px-3 pb-1" style={{ width: SIDEBAR_WIDTH }}>
@@ -329,7 +397,7 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 overflow-hidden">
+        <div ref={bodyWrapperRef} className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
           <div className="flex-shrink-0 border-r bg-card" style={{ width: SIDEBAR_WIDTH }}>
             <div ref={sidebarRef} className="h-full overflow-hidden">
@@ -364,15 +432,30 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
                     </div>
                   );
                 }
+                const isUnscheduled = !row.task.start_date;
                 return (
                   <div
                     key={`t-${row.task.task_id}`}
-                    className={`flex items-center gap-2 pl-6 pr-3 border-b border-border/30 cursor-pointer hover:bg-muted/50 transition-colors ${hoveredMember === row.memberEmail ? "bg-muted/30" : ""}`}
+                    className={`flex items-center gap-2 pr-3 border-b border-border/30 cursor-pointer transition-colors ${
+                      isUnscheduled
+                        ? "pl-4 border-l-2 border-l-red-500 bg-red-50/70 hover:bg-red-50"
+                        : `pl-6 hover:bg-muted/50 ${hoveredMember === row.memberEmail ? "bg-muted/30" : ""}`
+                    }`}
                     style={{ height: TASK_ROW_HEIGHT }}
                     onClick={() => onOpenTask?.(row.task.task_id)}
                     onMouseEnter={() => setHoveredMember(row.memberEmail)}
                     onMouseLeave={() => setHoveredMember(null)}
                   >
+                    {isUnscheduled && (
+                      <span
+                        title="Not scheduled — click to set a start date"
+                        className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white"
+                      >
+                        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                          <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                    )}
                     <span className="text-[10px] font-mono font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded flex-shrink-0">
                       {row.task.task_id}
                     </span>
@@ -446,16 +529,16 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
               })}
 
               {/* Deadline markers */}
-              {deadlines.map((dl) => {
-                const dlDate = parseDate(dl.date);
-                const offset = (diffDays(dlDate, rangeStart) + 0.5) * columnWidth;
-                if (offset < 0 || offset > totalWidth) return null;
+              {deadlineLayout.map(({ dl, offset, lane }) => {
                 const colors = deadlineColorMap[dl.color] ?? deadlineColorMap.red!;
                 return (
                   <div key={dl.id} className="absolute top-0 z-[8] pointer-events-none" style={{ left: offset, height: totalBodyHeight }}>
                     <div className={`w-0.5 h-full ${colors.line} opacity-60`} style={{ marginLeft: -1 }} />
                     <div className={`absolute -top-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full ${colors.line} ring-2 ring-white shadow-sm`} />
-                    <div className={`absolute top-3 left-1 whitespace-nowrap text-[9px] font-semibold px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} shadow-sm`}>
+                    <div
+                      className={`absolute left-1 whitespace-nowrap text-[9px] font-semibold px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} shadow-sm`}
+                      style={{ top: 12 + lane * 18 }}
+                    >
                       {dl.title}
                     </div>
                   </div>
