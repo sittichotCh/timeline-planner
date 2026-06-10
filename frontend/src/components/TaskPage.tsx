@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Member, TaskSetting, TaskStatus, JiraIssue, Deadline } from "@/types";
 import { deleteTask, fetchTasks, reorderTasks, upsertTask } from "@/api/tasks";
 import { fetchJiraConfig, syncJira } from "@/api/jira";
-import { devPointsToEffort } from "@/lib/jira";
+import { devPointsToEffort, issueTypeBadgeStyle } from "@/lib/jira";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -226,6 +226,7 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
             summary: issue.fields?.summary ?? task.summary,
             priority: issue.fields?.priority?.name ?? task.priority,
             status: issue.fields?.status?.name ?? task.status,
+            issue_type: issue.fields?.issuetype?.name ?? task.issue_type,
             // Re-apply Dev points → effort; keep the existing effort if unset.
             effort: devPointsToEffort(issue.fields?.dev_points) ?? task.effort,
           };
@@ -347,6 +348,7 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
                 <th className="px-1 py-2 w-[28px]"></th>
                 <th className="px-2 py-2 w-[60px] text-center">Rank</th>
                 <th className="px-3 py-2 w-[140px]">Task ID</th>
+                <th className="px-3 py-2 w-[90px]">Type</th>
                 <th className="px-3 py-2">Summary</th>
                 <th className="px-3 py-2 w-[90px]">Priority</th>
                 <th className="px-3 py-2 w-[110px]">Jira Status</th>
@@ -390,6 +392,15 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
                       <span className="text-[10px] font-mono font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
                         {task.task_id}
                       </span>
+                    </td>
+                    <td className="px-3 py-1.5">
+                      {task.issue_type ? (
+                        <Badge variant="outline" className={`text-[10px] ${issueTypeBadgeStyle(task.issue_type)}`}>
+                          {task.issue_type}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
                     </td>
                     <td className="px-3 py-1.5 text-[12px] font-medium text-foreground max-w-0">
                       <div className="truncate">{task.summary || task.task_id}</div>

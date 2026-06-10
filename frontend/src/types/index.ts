@@ -26,6 +26,8 @@ export interface TaskSetting {
   summary: string;
   priority: string;
   status?: string;
+  /** Jira issue/card type, e.g. Story, Bug, Task, Epic. */
+  issue_type?: string;
   member_email: string;
   start_date: string;
   effort: number;
@@ -54,6 +56,10 @@ export interface JiraIssue {
     } | null;
     priority?: {
       name?: string;
+    } | null;
+    issuetype?: {
+      name?: string;
+      iconUrl?: string;
     } | null;
     /** Normalized value of the Jira "Dev points" custom field, mapped to effort. */
     dev_points?: number | null;

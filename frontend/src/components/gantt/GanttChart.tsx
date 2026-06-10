@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Download, ImageDown, ZoomIn } from "lucide-react";
 import { exportTimelineToXlsx } from "@/lib/exportXlsx";
 import { exportTimelineToPng } from "@/lib/exportPng";
+import { issueTypeBadgeStyle } from "@/lib/jira";
 
 interface GanttChartProps {
   members: Member[];
@@ -459,6 +460,14 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
                     <span className="text-[10px] font-mono font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded flex-shrink-0">
                       {row.task.task_id}
                     </span>
+                    {row.task.issue_type && (
+                      <span
+                        title={row.task.issue_type}
+                        className={`text-[9px] font-medium px-1 py-0.5 rounded border flex-shrink-0 ${issueTypeBadgeStyle(row.task.issue_type)}`}
+                      >
+                        {row.task.issue_type}
+                      </span>
+                    )}
                     <span className="text-[12px] text-foreground truncate">
                       {row.task.summary}
                     </span>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Member, TaskSetting, Deadline } from "@/types";
 import { fetchTasks, upsertTask } from "@/api/tasks";
 import { syncJira } from "@/api/jira";
-import { devPointsToEffort } from "@/lib/jira";
+import { devPointsToEffort, issueTypeBadgeStyle } from "@/lib/jira";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,6 +90,7 @@ export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSa
         summary: issue.fields?.summary ?? f.summary,
         priority: issue.fields?.priority?.name ?? f.priority,
         status: issue.fields?.status?.name ?? f.status,
+        issue_type: issue.fields?.issuetype?.name ?? f.issue_type,
         effort: devPointsToEffort(issue.fields?.dev_points) ?? f.effort,
       }));
     } catch (err) {
@@ -108,6 +109,11 @@ export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSa
             <span className="text-[10px] font-mono font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
               {form.task_id}
             </span>
+            {form.issue_type && (
+              <Badge variant="outline" className={`text-[10px] ${issueTypeBadgeStyle(form.issue_type)}`}>
+                {form.issue_type}
+              </Badge>
+            )}
             {form.priority && (
               <Badge variant="outline" className={`text-[10px] ${priorityBadgeClass[form.priority] ?? ""}`}>
                 {form.priority}

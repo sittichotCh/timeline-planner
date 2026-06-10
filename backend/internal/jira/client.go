@@ -39,10 +39,11 @@ type Issue struct {
 }
 
 type IssueFields struct {
-	Summary  string    `json:"summary"`
-	Assignee *Assignee `json:"assignee"`
-	Status   *Status   `json:"status"`
-	Priority *Priority `json:"priority"`
+	Summary   string     `json:"summary"`
+	Assignee  *Assignee  `json:"assignee"`
+	Status    *Status    `json:"status"`
+	Priority  *Priority  `json:"priority"`
+	IssueType *IssueType `json:"issuetype,omitempty"`
 	// DevPoints is the normalized value of the "Dev points" custom field,
 	// surfaced under a stable key so the frontend never deals with the
 	// instance-specific customfield_XXXXX id. Omitted when the field is unset.
@@ -60,6 +61,12 @@ type Status struct {
 
 type Priority struct {
 	Name string `json:"name"`
+}
+
+// IssueType is the Jira issue/card type (e.g. Story, Bug, Task, Epic).
+type IssueType struct {
+	Name    string `json:"name"`
+	IconURL string `json:"iconUrl,omitempty"`
 }
 
 type SearchResult struct {
@@ -126,7 +133,7 @@ func (c *Client) SearchIssues(jql string, maxResults int, nextPageToken string) 
 		return nil, fmt.Errorf("jira base URL not configured")
 	}
 
-	fields := []string{"summary", "assignee", "status", "priority"}
+	fields := []string{"summary", "assignee", "status", "priority", "issuetype"}
 	// Best-effort: include the "Dev points" custom field when it exists so we
 	// can map it onto task effort. A lookup failure must not break the sync.
 	devID, _ := c.devPointsFieldID()
@@ -161,7 +168,7 @@ func (c *Client) SearchIssues(jql string, maxResults int, nextPageToken string) 
 	for _, ri := range raw.Issues {
 		var f IssueFields
 		if len(ri.Fields) > 0 {
-			_ = json.Unmarshal(ri.Fields, &f) // summary / assignee / status / priority
+			_ = json.Unmarshal(ri.Fields, &f) // summary / assignee / status / priority / issuetype
 			if devID != "" {
 				f.DevPoints = extractNumber(ri.Fields, devID)
 			}

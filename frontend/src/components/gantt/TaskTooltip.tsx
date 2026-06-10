@@ -1,4 +1,5 @@
 import type { TaskSetting, Deadline } from "@/types";
+import { issueTypeBadgeStyle } from "@/lib/jira";
 
 interface TaskTooltipProps {
   task: TaskSetting;
@@ -28,6 +29,11 @@ export function TaskTooltip({ task, jiraBaseUrl, position, deadlines = [] }: Tas
           <span className="text-[10px] font-mono font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md ring-1 ring-indigo-100">
             {task.task_id}
           </span>
+          {task.issue_type && (
+            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border ${issueTypeBadgeStyle(task.issue_type)}`}>
+              {task.issue_type}
+            </span>
+          )}
           {task.priority && (
             <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${priorityStyles[task.priority] ?? "bg-gray-50 text-gray-600 ring-1 ring-gray-200"}`}>
               {task.priority}

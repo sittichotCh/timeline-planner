@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { JiraIssue, Member, TaskSetting } from "@/types";
 import { fetchJiraConfig, syncJira } from "@/api/jira";
-import { devPointsToEffort } from "@/lib/jira";
+import { devPointsToEffort, issueTypeBadgeStyle } from "@/lib/jira";
 import { upsertTask } from "@/api/tasks";
 import { createMember } from "@/api/members";
 import { Button } from "@/components/ui/button";
@@ -100,6 +100,7 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
       summary: issue.fields?.summary ?? "",
       priority: issue.fields?.priority?.name ?? "",
       status: issue.fields?.status?.name ?? undefined,
+      issue_type: issue.fields?.issuetype?.name ?? undefined,
       member_email: assigneeEmail,
       start_date: "",
       effort: devPointsToEffort(issue.fields?.dev_points) ?? 1,
@@ -269,6 +270,7 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
               <tr className="border-b text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                 <th className="px-3 py-2 w-[40px]"></th>
                 <th className="px-3 py-2 w-[120px]">Key</th>
+                <th className="px-3 py-2 w-[90px]">Type</th>
                 <th className="px-3 py-2">Summary</th>
                 <th className="px-3 py-2 w-[90px]">Priority</th>
                 <th className="px-3 py-2 w-[110px]">Status</th>
@@ -305,6 +307,13 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
                       <span className="text-[10px] font-mono font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
                         {issue.key}
                       </span>
+                    </td>
+                    <td className="px-3 py-1.5">
+                      {issue.fields?.issuetype?.name && (
+                        <Badge variant="outline" className={`text-[10px] ${issueTypeBadgeStyle(issue.fields.issuetype.name)}`}>
+                          {issue.fields.issuetype.name}
+                        </Badge>
+                      )}
                     </td>
                     <td className="px-3 py-1.5 text-[12px] font-medium text-foreground max-w-0">
                       <div className="truncate">{issue.fields?.summary ?? ""}</div>
