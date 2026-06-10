@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Member, TaskSetting, Deadline } from "@/types";
-import { fetchTasks, upsertTask } from "@/api/tasks";
+import { fetchTasks, upsertTask, deleteTask } from "@/api/tasks";
 import { syncJira } from "@/api/jira";
 import { devPointsToEffort, issueTypeBadgeStyle } from "@/lib/jira";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, RefreshCw, ExternalLink } from "lucide-react";
+import { X, RefreshCw, ExternalLink, Trash2 } from "lucide-react";
 
 interface TaskEditModalProps {
   task: TaskSetting;
@@ -22,6 +22,7 @@ interface TaskEditModalProps {
   deadlines: Deadline[];
   jiraBaseUrl?: string;
   onSave: (saved: TaskSetting, allTasks?: TaskSetting[]) => void;
+  onDelete?: (taskId: string) => void;
   onClose: () => void;
 }
 
@@ -35,16 +36,19 @@ const priorityBadgeClass: Record<string, string> = {
   Lowest: "bg-muted text-muted-foreground border-border",
 };
 
-export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSave, onClose }: TaskEditModalProps) {
+export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSave, onDelete, onClose }: TaskEditModalProps) {
   const [form, setForm] = useState<TaskSetting>(() => ({ ...task }));
   const [error, setError] = useState<string | null>(null);
   const [resyncing, setResyncing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [prevTaskId, setPrevTaskId] = useState(task.task_id);
 
   if (task.task_id !== prevTaskId) {
     setPrevTaskId(task.task_id);
     setForm({ ...task });
     setError(null);
+    setConfirmingDelete(false);
   }
 
   function getDeadlineName(id: string | undefined): string | null {
@@ -97,6 +101,26 @@ export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSa
       setError(err instanceof Error ? err.message : "Resync failed");
     } finally {
       setResyncing(false);
+    }
+  }
+
+  // Deletes the task after a two-click confirm. On success the parent drops it
+  // from state via onDelete; the modal then closes.
+  async function handleDelete() {
+    if (!confirmingDelete) {
+      setConfirmingDelete(true);
+      return;
+    }
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteTask(form.task_id);
+      onDelete?.(form.task_id);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed");
+      setDeleting(false);
+      setConfirmingDelete(false);
     }
   }
 
@@ -214,6 +238,17 @@ export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSa
 
         <div className="flex items-center justify-between gap-2 px-5 py-3.5 border-t">
           <div className="flex items-center gap-2">
+            <Button
+              variant={confirmingDelete ? "destructive" : "outline"}
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleting}
+              className={confirmingDelete ? "" : "text-destructive hover:text-destructive"}
+              title={confirmingDelete ? "Click again to permanently delete" : "Delete task"}
+            >
+              <Trash2 />
+              {deleting ? "Deleting…" : confirmingDelete ? "Confirm delete" : "Delete"}
+            </Button>
             {jiraBaseUrl && (
               <>
                 <Button variant="outline" size="sm" onClick={handleResync} disabled={resyncing}>

@@ -170,6 +170,10 @@ function App() {
               }
               setEditTaskId(null);
             }}
+            onDelete={(taskId) => {
+              setTasks((prev) => prev.filter((t) => t.task_id !== taskId));
+              setEditTaskId(null);
+            }}
             onClose={() => setEditTaskId(null)}
           />
         );

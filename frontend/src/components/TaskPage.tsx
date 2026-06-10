@@ -483,6 +483,7 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
             }
             setEditingTask(null);
           }}
+          onDelete={(taskId) => onTasksChange(tasks.filter((t) => t.task_id !== taskId))}
           onClose={() => setEditingTask(null)}
         />
       )}
