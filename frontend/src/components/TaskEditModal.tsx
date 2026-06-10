@@ -240,7 +240,7 @@ export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSa
           <div className="flex items-center gap-2">
             <Button
               variant={confirmingDelete ? "destructive" : "outline"}
-              size="sm"
+              size="xs"
               onClick={handleDelete}
               disabled={deleting}
               className={confirmingDelete ? "" : "text-destructive hover:text-destructive"}
@@ -251,7 +251,7 @@ export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSa
             </Button>
             {jiraBaseUrl && (
               <>
-                <Button variant="outline" size="sm" onClick={handleResync} disabled={resyncing}>
+                <Button variant="outline" size="xs" onClick={handleResync} disabled={resyncing}>
                   <RefreshCw className={resyncing ? "animate-spin" : ""} />
                   {resyncing ? "Syncing..." : "Resync Jira"}
                 </Button>
@@ -259,7 +259,7 @@ export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSa
                   href={`${jiraBaseUrl}/browse/${form.task_id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                  className={buttonVariants({ variant: "outline", size: "xs" })}
                 >
                   <ExternalLink />
                   Open in Jira
@@ -268,8 +268,8 @@ export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSa
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
-            <Button size="sm" onClick={handleSave}>Save</Button>
+            <Button variant="outline" size="xs" onClick={onClose}>Cancel</Button>
+            <Button size="xs" onClick={handleSave}>Save</Button>
           </div>
         </div>
       </div>
