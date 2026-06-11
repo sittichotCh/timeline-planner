@@ -4,6 +4,7 @@ import type { Member, TaskSetting, CalendarEvent, Deadline } from "@/types";
 import { diffDays, generateDateRange, parseDate, formatDate, isWeekend } from "@/lib/dates";
 import { GanttHeader } from "./GanttHeader";
 import { GanttMergedEventRow } from "./GanttMergedEventRow";
+import { GanttTeamEventStrip } from "./GanttTeamEventStrip";
 import { TaskBar } from "./TaskBar";
 import { EventTooltip } from "./EventTooltip";
 import { Button } from "@/components/ui/button";
@@ -393,6 +394,14 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
             <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Member / Task</span>
           </div>
           <div ref={headerScrollRef} className="flex-1 overflow-hidden">
+            {team.length > 0 && (
+              <GanttTeamEventStrip
+                teamEvents={team}
+                rangeStart={rangeStart}
+                columnWidth={columnWidth}
+                totalWidth={totalWidth}
+              />
+            )}
             <GanttHeader dates={dates} columnWidth={columnWidth} />
           </div>
         </div>
@@ -450,27 +459,31 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
                     {isUnscheduled && (
                       <span
                         title="Not scheduled — click to set a start date"
-                        className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white"
+                        className="flex-shrink-0 flex items-center justify-center w-[15px] h-[15px] rounded-full bg-red-500 text-white"
                       >
-                        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                        <svg viewBox="0 0 20 20" fill="currentColor" className="w-[9px] h-[9px]">
                           <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                         </svg>
                       </span>
                     )}
-                    <span className="text-[10px] font-mono font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded flex-shrink-0">
-                      {row.task.task_id}
-                    </span>
-                    {row.task.issue_type && (
-                      <span
-                        title={row.task.issue_type}
-                        className={`text-[9px] font-medium px-1 py-0.5 rounded border flex-shrink-0 ${issueTypeBadgeStyle(row.task.issue_type)}`}
-                      >
-                        {row.task.issue_type}
+                    <div className="min-w-0 flex flex-col justify-center gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-mono font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded flex-shrink-0">
+                          {row.task.task_id}
+                        </span>
+                        {row.task.issue_type && (
+                          <span
+                            title={row.task.issue_type}
+                            className={`text-[9px] font-medium px-1 py-0.5 rounded border flex-shrink-0 ${issueTypeBadgeStyle(row.task.issue_type)}`}
+                          >
+                            {row.task.issue_type}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[12px] text-foreground truncate leading-tight">
+                        {row.task.summary}
                       </span>
-                    )}
-                    <span className="text-[12px] text-foreground truncate">
-                      {row.task.summary}
-                    </span>
+                    </div>
                   </div>
                 );
               })}
