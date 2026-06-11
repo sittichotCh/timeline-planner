@@ -394,6 +394,7 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
             <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Member / Task</span>
           </div>
           <div ref={headerScrollRef} className="flex-1 overflow-hidden">
+            <GanttHeader dates={dates} columnWidth={columnWidth} />
             {team.length > 0 && (
               <GanttTeamEventStrip
                 teamEvents={team}
@@ -402,7 +403,6 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
                 totalWidth={totalWidth}
               />
             )}
-            <GanttHeader dates={dates} columnWidth={columnWidth} />
           </div>
         </div>
 

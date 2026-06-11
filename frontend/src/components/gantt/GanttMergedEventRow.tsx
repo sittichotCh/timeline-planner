@@ -21,10 +21,10 @@ interface GanttMergedEventRowProps {
 // the date range a team-wide event covers. The readable label + tooltip live in
 // the top strip (GanttTeamEventStrip), so the band itself is decoration only.
 const eventBandStyles: Record<string, string> = {
-  leave: "bg-orange-200/25 border-orange-300/40",
-  oncall: "bg-red-200/25 border-red-300/40",
-  holiday: "bg-amber-200/30 border-amber-300/40",
-  other: "bg-gray-200/25 border-gray-300/40",
+  leave: "bg-orange-200/40 border-orange-500/70",
+  oncall: "bg-red-200/40 border-red-500/70",
+  holiday: "bg-amber-200/40 border-amber-500/70",
+  other: "bg-gray-200/40 border-gray-500/70",
 };
 
 export function GanttMergedEventRow({
@@ -48,7 +48,7 @@ export function GanttMergedEventRow({
         return (
           <div
             key={event.key}
-            className={`absolute top-0 border-x border-dashed ${style}`}
+            className={`absolute top-0 border-2 border-dashed ${style}`}
             style={{
               left: Math.max(0, left),
               width: Math.min(left + width, totalWidth) - Math.max(0, left),

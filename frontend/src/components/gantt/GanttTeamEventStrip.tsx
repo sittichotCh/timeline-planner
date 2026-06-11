@@ -19,20 +19,25 @@ interface GanttTeamEventStripProps {
   totalWidth: number;
 }
 
-const pillStyles: Record<string, string> = {
-  leave: "bg-orange-100 text-orange-700 border-orange-200",
-  oncall: "bg-red-100 text-red-700 border-red-200",
-  holiday: "bg-amber-100 text-amber-700 border-amber-200",
-  other: "bg-gray-100 text-gray-600 border-gray-200",
+// Cap styles mirror the dashed band below (GanttMergedEventRow): saturated fill
+// + matching dashed border colour, so each label reads as the top of the band's
+// box rather than a separate pill.
+const capStyles: Record<string, string> = {
+  leave: "bg-orange-100 text-orange-700 border-orange-500/70",
+  oncall: "bg-red-100 text-red-700 border-red-500/70",
+  holiday: "bg-amber-100 text-amber-700 border-amber-500/70",
+  other: "bg-gray-100 text-gray-600 border-gray-500/70",
 };
 
 const LANE_HEIGHT = 20;
 const LANE_GAP = 2;
 
-// A horizontal lane of team-event pills pinned above the chart. Pills are
-// positioned by date and greedily packed into lanes so overlapping events stack
-// downward instead of colliding. Lives inside the (horizontally-synced) header
-// scroll area so it stays column-aligned and fixed while the body scrolls.
+// A row of team-event "caps" pinned directly beneath the date header. Each cap
+// spans its event's full date range and carries a rounded-top dashed border that
+// is open at the bottom, so it merges into the matching dashed band in the chart
+// body — label + band form one connected box. Lane 0 is anchored to the bottom
+// so it sits flush against the band; overlapping events stack upward. Lives in
+// the (horizontally-synced) header scroll area so it stays column-aligned.
 export function GanttTeamEventStrip({ teamEvents, rangeStart, columnWidth, totalWidth }: GanttTeamEventStripProps) {
   const [hovered, setHovered] = useState<TeamEvent | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -60,22 +65,24 @@ export function GanttTeamEventStrip({ teamEvents, rangeStart, columnWidth, total
   })();
 
   const laneCount = laid.reduce((m, it) => Math.max(m, it.lane + 1), 0);
-  const height = laneCount * (LANE_HEIGHT + LANE_GAP) + 4;
+  const height = laneCount * (LANE_HEIGHT + LANE_GAP);
 
   return (
-    <div className="relative border-b border-border bg-card/60" style={{ width: totalWidth, height }}>
+    <div className="relative bg-card" style={{ width: totalWidth, height }}>
       {laid.map((it) => {
         const clippedLeft = Math.max(0, it.left);
         const clippedWidth = Math.min(it.right, totalWidth) - clippedLeft;
-        const style = pillStyles[it.ev.type] ?? pillStyles.other;
+        const style = capStyles[it.ev.type] ?? capStyles.other;
+        // lane 0 sits flush at the bottom (capping the band); extra lanes stack upward
+        const top = height - (it.lane + 1) * LANE_HEIGHT - it.lane * LANE_GAP;
         return (
           <div
             key={it.ev.key}
-            className={`absolute flex items-center rounded-md border text-[10px] font-medium px-1.5 overflow-hidden whitespace-nowrap cursor-pointer ${style}`}
+            className={`absolute flex items-center border-2 border-b-0 border-dashed text-[10px] font-medium px-1.5 overflow-hidden whitespace-nowrap cursor-pointer ${style}`}
             style={{
               left: clippedLeft,
               width: clippedWidth,
-              top: it.lane * (LANE_HEIGHT + LANE_GAP) + 2,
+              top,
               height: LANE_HEIGHT,
             }}
             onMouseEnter={(e) => {
