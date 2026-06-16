@@ -115,3 +115,12 @@ export function getWorkingDays(
 
   return days;
 }
+
+/**
+ * Shift an ISO date string (YYYY-MM-DD) by a whole number of days, returning a
+ * new ISO date string. Round-trips through local-midnight Dates so it matches
+ * the rest of the timeline's date math (see formatDate's note on timezones).
+ */
+export function shiftISODate(iso: string, days: number): string {
+  return formatDate(addDays(parseDate(iso), days));
+}
