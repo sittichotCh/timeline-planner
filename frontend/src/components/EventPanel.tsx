@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { CalendarEvent, EventScope, EventType, Member } from "@/types";
 import { createEvent, updateEvent, deleteEvent } from "@/api/events";
+import { loadGanttRange } from "@/lib/ganttSettings";
+import { formatShortDate } from "@/lib/dates";
 import {
   Sheet,
   SheetContent,
@@ -65,6 +67,14 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
   const [form, setForm] = useState<EventFormData>(emptyForm);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Captured once when the panel opens. The From/To inputs live behind the
+  // panel's modal overlay, so the range can't change while the panel is open;
+  // the panel remounts (and re-reads) each time it is reopened.
+  const [range] = useState(loadGanttRange);
+  const visibleEvents = events.filter(
+    (e) => e.start_date <= range.rangeEnd && e.end_date >= range.rangeStart,
+  );
 
   function startAdd() {
     setEditing(null);
@@ -157,7 +167,12 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
       <SheetContent side="right" style={{ maxWidth: 420 }}>
         <SheetHeader>
           <SheetTitle>Calendar Events</SheetTitle>
-          <SheetDescription>{events.length} events</SheetDescription>
+          <SheetDescription>
+            {visibleEvents.length === events.length
+              ? `${events.length} events`
+              : `${visibleEvents.length} of ${events.length} events`}{" · "}
+            {formatShortDate(range.rangeStart)} &rarr; {formatShortDate(range.rangeEnd)}
+          </SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-4 space-y-2">
@@ -165,7 +180,7 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
             <div className="bg-destructive/10 text-destructive text-[12px] px-3 py-2 rounded-lg">{error}</div>
           )}
 
-          {events.map((event) => {
+          {visibleEvents.map((event) => {
             const typeInfo = eventTypes.find((t) => t.value === event.type);
             return (
               <div key={event.id} className="group relative flex items-center justify-between p-3 rounded-xl border hover:shadow-sm transition-all">
@@ -205,6 +220,15 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
               </div>
               <p className="text-[13px] text-muted-foreground font-medium">No events yet</p>
               <p className="text-[11px] text-muted-foreground mt-1">Add holidays, vacations, or busy periods.</p>
+            </div>
+          )}
+          {events.length > 0 && visibleEvents.length === 0 && !showForm && (
+            <div className="text-center py-12">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                <Calendar className="size-6 text-muted-foreground" />
+              </div>
+              <p className="text-[13px] text-muted-foreground font-medium">No events in this range</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Adjust the timeline&rsquo;s From / To to see more.</p>
             </div>
           )}
         </div>
