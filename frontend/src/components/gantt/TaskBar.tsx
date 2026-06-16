@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { TaskSetting, Deadline } from "@/types";
-import { parseDate, diffDays, formatDate, addDays, computeWorkingSegments, getWorkingDays } from "@/lib/dates";
+import { parseDate, diffDays, addDays, shiftISODate, computeWorkingSegments, getWorkingDays } from "@/lib/dates";
 import { TaskTooltip } from "./TaskTooltip";
+import { useDayDrag } from "./useDayDrag";
+import { DragDatePill } from "./DragDatePill";
 
 interface TaskBarProps {
   task: TaskSetting;
@@ -33,51 +35,15 @@ export function TaskBar({
   barColor,
   deadlines,
 }: TaskBarProps) {
-  const [dragging, setDragging] = useState<{ startX: number } | null>(null);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
   const [hovered, setHovered] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!dragging) return;
-      setDragOffset(e.clientX - dragging.startX);
-      setDragPos({ x: e.clientX, y: e.clientY });
-    },
-    [dragging],
+  const { dragging, dragOffset, daysMoved, dragPos, onMouseDown } = useDayDrag(
+    columnWidth,
+    (days) => onTaskUpdate?.({ ...task, start_date: shiftISODate(task.start_date, days) }),
+    () => onOpenTask?.(task.task_id),
   );
-
-  const handleMouseUp = useCallback(
-    (e: MouseEvent) => {
-      if (!dragging) return;
-      // Compute the offset from the actual release position rather than from
-      // dragOffset state: the mouseup can fire before React re-renders after
-      // the final mousemove, leaving the state (and this closure) one move
-      // stale — which made the drop land a day off from the indicator.
-      const finalOffset = e.clientX - dragging.startX;
-      const daysMoved = Math.round(finalOffset / columnWidth);
-      if (daysMoved !== 0) {
-        onTaskUpdate?.({ ...task, start_date: formatDate(addDays(parseDate(task.start_date), daysMoved)) });
-      } else {
-        onOpenTask?.(task.task_id);
-      }
-      setDragging(null);
-      setDragOffset(0);
-    },
-    [dragging, columnWidth, onTaskUpdate, onOpenTask, task],
-  );
-
-  useEffect(() => {
-    if (!dragging) return;
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [dragging, handleMouseMove, handleMouseUp]);
 
   const isScheduled = Boolean(task.start_date);
   // Effort can carry half days (from Jira "Dev points"); the bar always spans
@@ -117,11 +83,8 @@ export function TaskBar({
               borderRadius: `${isFirst ? barHeight / 2 : 4}px ${isLast ? barHeight / 2 : 4}px ${isLast ? barHeight / 2 : 4}px ${isFirst ? barHeight / 2 : 4}px`,
             }}
             onMouseDown={(e) => {
-              if (e.button !== 0) return;
               setHovered(false);
-              setDragging({ startX: e.clientX });
-              setDragOffset(0);
-              setDragPos({ x: e.clientX, y: e.clientY });
+              onMouseDown(e);
             }}
             onMouseEnter={(e) => {
               if (dragging) return;
@@ -163,25 +126,9 @@ export function TaskBar({
         document.body,
       )}
 
-      {dragging && start && createPortal((() => {
-        const daysMoved = Math.round(dragOffset / columnWidth);
-        const previewStart = addDays(start, daysMoved);
-        const dateLabel = previewStart.toLocaleDateString(undefined, {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        });
-        const deltaLabel = daysMoved === 0 ? "no change" : `${daysMoved > 0 ? "+" : ""}${daysMoved}d`;
-        return (
-          <div
-            className="fixed z-50 pointer-events-none -translate-x-1/2 -translate-y-full rounded-md bg-indigo-600 text-white shadow-lg px-2 py-1 flex items-center gap-1.5 whitespace-nowrap"
-            style={{ left: dragPos.x, top: dragPos.y - 14 }}
-          >
-            <span className="text-[11px] font-semibold">{dateLabel}</span>
-            <span className="text-[10px] font-medium text-indigo-200">{deltaLabel}</span>
-          </div>
-        );
-      })(), document.body)}
+      {dragging && start && (
+        <DragDatePill cursor={dragPos} date={addDays(start, daysMoved)} daysMoved={daysMoved} />
+      )}
     </>
   );
 }
