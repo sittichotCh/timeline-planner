@@ -168,15 +168,15 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
           {events.map((event) => {
             const typeInfo = eventTypes.find((t) => t.value === event.type);
             return (
-              <div key={event.id} className="group flex items-center justify-between p-3 rounded-xl border hover:shadow-sm transition-all">
-                <div className="flex items-center gap-3 min-w-0">
+              <div key={event.id} className="group relative flex items-center justify-between p-3 rounded-xl border hover:shadow-sm transition-all">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className={`w-2 h-8 rounded-full flex-shrink-0 ${typeInfo?.color ?? "bg-gray-400"}`} />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[13px] font-medium truncate">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[13px] font-medium break-words">
                         {event.title || event.type}
                       </span>
-                      <Badge variant={event.scope === "team" ? "default" : "secondary"} className="text-[10px]">
+                      <Badge variant={event.scope === "team" ? "default" : "secondary"} className="text-[10px] flex-shrink-0">
                         {event.scope === "team" ? "Team" : "Personal"}
                       </Badge>
                     </div>
@@ -190,7 +190,7 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/85 backdrop-blur-sm rounded-md p-0.5 shadow-sm">
                   <Button variant="ghost" size="xs" onClick={() => startEdit(event)}>Edit</Button>
                   <Button variant="destructive" size="xs" onClick={() => handleDelete(event.id)}>Delete</Button>
                 </div>

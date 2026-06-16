@@ -111,17 +111,17 @@ export function DeadlinePanel({ deadlines, onDeadlinesChange, onClose }: Deadlin
           {sorted.map((deadline) => {
             const isPast = deadline.date < new Date().toISOString().slice(0, 10);
             return (
-              <div key={deadline.id} className="group flex items-center justify-between p-3 rounded-xl border hover:shadow-sm transition-all">
-                <div className="flex items-center gap-3 min-w-0">
+              <div key={deadline.id} className="group relative flex items-center justify-between p-3 rounded-xl border hover:shadow-sm transition-all">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className={`w-3 h-10 rounded-full flex-shrink-0 ${getColorClass(deadline.color)}`} />
-                  <div className="min-w-0">
-                    <div className="text-[13px] font-medium truncate">{deadline.title}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-medium break-words">{deadline.title}</div>
                     <div className={`text-[11px] mt-0.5 ${isPast ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                       {deadline.date}{isPast ? " (past)" : ""}
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/85 backdrop-blur-sm rounded-md p-0.5 shadow-sm">
                   <Button variant="ghost" size="xs" onClick={() => startEdit(deadline)}>Edit</Button>
                   <Button variant="destructive" size="xs" onClick={() => handleDelete(deadline.id)}>Delete</Button>
                 </div>
