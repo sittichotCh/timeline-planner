@@ -101,12 +101,17 @@ A single pure helper shifts an ISO date string by N days, reusing the existing
 
 ## Testing
 
-- Unit test for the pure date-shift helper (a few day deltas incl. month
-  boundary).
-- Playwright: drag a deadline, a personal event, and a team cap; assert the live
-  date pill text and the post-drop persisted dates change by the expected number
-  of days.
-- `npm run build` (strict TypeScript, no `any`) and `npm run lint`.
+The frontend has no unit-test runner (only `build` and `lint` scripts); UI is
+verified in a real browser via the Playwright MCP, per CLAUDE.md. We follow that
+established approach rather than introducing a test framework for this feature.
+
+- `npm run build` (strict TypeScript, no `any`) — also type-checks the new
+  `shiftISODate` helper and all new props/components.
+- `npm run lint`.
+- Playwright MCP: drag a deadline, a personal event, and a team cap; assert the
+  live date pill appears and the post-drop persisted dates (via the
+  Events/Deadlines panels or a network request) change by the expected number of
+  days.
 
 ## Files touched
 
