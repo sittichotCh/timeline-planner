@@ -124,3 +124,12 @@ export function getWorkingDays(
 export function shiftISODate(iso: string, days: number): string {
   return formatDate(addDays(parseDate(iso), days));
 }
+
+/**
+ * Format an ISO date string (YYYY-MM-DD) as a short, locale-aware label such as
+ * "Jun 1", for compact range display. Parses via local-midnight (parseDate) so
+ * the day never shifts across timezones.
+ */
+export function formatShortDate(iso: string): string {
+  return parseDate(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
