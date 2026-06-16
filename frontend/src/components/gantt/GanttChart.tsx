@@ -406,6 +406,7 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
                 rangeStart={rangeStart}
                 columnWidth={columnWidth}
                 totalWidth={totalWidth}
+                onEventUpdate={onEventUpdate}
               />
             )}
           </div>

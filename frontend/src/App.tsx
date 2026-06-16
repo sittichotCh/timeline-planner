@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Member, TaskSetting, CalendarEvent, Deadline } from "@/types";
 import { fetchMembers } from "@/api/members";
-import { fetchEvents } from "@/api/events";
+import { fetchEvents, updateEvent } from "@/api/events";
 import { fetchTasks, upsertTask } from "@/api/tasks";
-import { fetchDeadlines } from "@/api/deadlines";
+import { fetchDeadlines, updateDeadline } from "@/api/deadlines";
 import { fetchJiraConfig } from "@/api/jira";
 import { GanttChart } from "@/components/gantt/GanttChart";
 import { MemberPanel } from "@/components/MemberPanel";
@@ -64,6 +64,26 @@ function App() {
       setTasks((prev) => prev.map((t) => (t.task_id === saved.task_id ? saved : t)));
     } catch {
       fetchTasks().then(setTasks).catch(() => {});
+    }
+  }, []);
+
+  const handleEventUpdate = useCallback(async (updated: CalendarEvent) => {
+    setEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+    try {
+      const saved = await updateEvent(updated.id, updated);
+      setEvents((prev) => prev.map((e) => (e.id === saved.id ? saved : e)));
+    } catch {
+      fetchEvents().then(setEvents).catch(() => {});
+    }
+  }, []);
+
+  const handleDeadlineUpdate = useCallback(async (updated: Deadline) => {
+    setDeadlines((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+    try {
+      const saved = await updateDeadline(updated.id, updated);
+      setDeadlines((prev) => prev.map((d) => (d.id === saved.id ? saved : d)));
+    } catch {
+      fetchDeadlines().then(setDeadlines).catch(() => {});
     }
   }, []);
 
@@ -149,6 +169,8 @@ function App() {
             jiraBaseUrl={jiraBaseUrl}
             onTaskUpdate={handleTaskUpdate}
             onOpenTask={(taskId) => setEditTaskId(taskId)}
+            onEventUpdate={handleEventUpdate}
+            onDeadlineUpdate={handleDeadlineUpdate}
           />
         )}
       </main>
