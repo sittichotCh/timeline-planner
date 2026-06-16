@@ -7,6 +7,8 @@ import { GanttMergedEventRow } from "./GanttMergedEventRow";
 import { GanttTeamEventStrip } from "./GanttTeamEventStrip";
 import { TaskBar } from "./TaskBar";
 import { EventTooltip } from "./EventTooltip";
+import { DeadlineMarker } from "./DeadlineMarker";
+import { PersonalEventBars } from "./PersonalEventBars";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Download, ImageDown, ZoomIn } from "lucide-react";
@@ -22,6 +24,8 @@ interface GanttChartProps {
   jiraBaseUrl?: string;
   onTaskUpdate?: (task: TaskSetting) => void;
   onOpenTask?: (taskId: string) => void;
+  onEventUpdate?: (event: CalendarEvent) => void;
+  onDeadlineUpdate?: (deadline: Deadline) => void;
 }
 
 const MEMBER_HEADER_HEIGHT = 40;
@@ -84,15 +88,6 @@ function splitEvents(events: CalendarEvent[]): { team: TeamEvent[]; personal: Ca
   return { team, personal };
 }
 
-const deadlineColorMap: Record<string, { line: string; bg: string; text: string }> = {
-  red: { line: "bg-red-500", bg: "bg-red-50", text: "text-red-700" },
-  orange: { line: "bg-orange-500", bg: "bg-orange-50", text: "text-orange-700" },
-  amber: { line: "bg-amber-500", bg: "bg-amber-50", text: "text-amber-700" },
-  emerald: { line: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
-  blue: { line: "bg-blue-500", bg: "bg-blue-50", text: "text-blue-700" },
-  violet: { line: "bg-violet-500", bg: "bg-violet-50", text: "text-violet-700" },
-};
-
 type RowItem =
   | { kind: "header"; member: Member; colorIdx: number; taskCount: number }
   | { kind: "task"; task: TaskSetting; colorIdx: number; memberEmail: string };
@@ -108,7 +103,7 @@ function nextMonthEnd(): string {
   return formatDate(last);
 }
 
-export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl = "", onTaskUpdate, onOpenTask }: GanttChartProps) {
+export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl = "", onTaskUpdate, onOpenTask, onEventUpdate, onDeadlineUpdate }: GanttChartProps) {
   const saved = useMemo(() => loadSettings(), []);
   const [rangeStartStr, setRangeStartStr] = useState(() => saved.rangeStart ?? currentMonthStart());
   const [rangeEndStr, setRangeEndStr] = useState(() => saved.rangeEnd ?? nextMonthEnd());
@@ -275,6 +270,16 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
     chartRef.current?.scrollTo({ left: scrollLeft, behavior: "smooth" });
     headerScrollRef.current?.scrollTo({ left: scrollLeft, behavior: "smooth" });
   }, [todayOffset]);
+
+  const showEventTooltip = useCallback((_event: CalendarEvent, x: number, y: number) => {
+    if (eventHoverTimeout.current) clearTimeout(eventHoverTimeout.current);
+    setEventTooltipPos({ x, y });
+    setHoveredEvent(_event);
+  }, []);
+
+  const hideEventTooltip = useCallback(() => {
+    eventHoverTimeout.current = setTimeout(() => setHoveredEvent(null), 150);
+  }, []);
 
   function handleRangeStartChange(value: string) {
     setRangeStartStr(value);
@@ -516,56 +521,32 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
               )}
 
               {/* Personal event overlays — merged across a member's rows */}
-              {personal.flatMap((ev) => {
-                const start = parseDate(ev.start_date);
-                const end = parseDate(ev.end_date);
-                const left = diffDays(start, rangeStart) * columnWidth;
-                const width = (diffDays(end, start) + 1) * columnWidth;
-                if (left + width < 0 || left > totalWidth) return [];
-                const clippedLeft = Math.max(0, left);
-                const clippedWidth = Math.min(left + width, totalWidth) - clippedLeft;
-                return ev.member_emails.flatMap((email) => {
-                  const range = memberYRanges.get(email);
-                  if (!range) return [];
-                  return [(
-                    <div
-                      key={`${ev.id}-${email}`}
-                      className="absolute z-[3] flex items-center justify-center overflow-hidden cursor-pointer"
-                      style={{ left: clippedLeft, width: clippedWidth, top: range.top, height: range.height, backgroundColor: "rgba(186, 0, 0, 0.15)", border: "1px solid rgba(186, 0, 0, 0.4)" }}
-                      onMouseEnter={(e) => {
-                        if (eventHoverTimeout.current) clearTimeout(eventHoverTimeout.current);
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setEventTooltipPos({ x: rect.left, y: rect.bottom });
-                        setHoveredEvent(ev);
-                      }}
-                      onMouseLeave={() => {
-                        eventHoverTimeout.current = setTimeout(() => setHoveredEvent(null), 150);
-                      }}
-                    >
-                      <span className="text-[10px] font-medium text-red-900/60 truncate px-1 pointer-events-none">
-                        {ev.title}
-                      </span>
-                    </div>
-                  )];
-                });
-              })}
+              {personal.map((ev) => (
+                <PersonalEventBars
+                  key={ev.id}
+                  event={ev}
+                  memberYRanges={memberYRanges}
+                  rangeStart={rangeStart}
+                  columnWidth={columnWidth}
+                  totalWidth={totalWidth}
+                  onUpdate={onEventUpdate}
+                  onShowTooltip={showEventTooltip}
+                  onHideTooltip={hideEventTooltip}
+                />
+              ))}
 
               {/* Deadline markers */}
-              {deadlineLayout.map(({ dl, offset, lane }) => {
-                const colors = deadlineColorMap[dl.color] ?? deadlineColorMap.red!;
-                return (
-                  <div key={dl.id} className="absolute top-0 z-[8] pointer-events-none" style={{ left: offset, height: totalBodyHeight }}>
-                    <div className={`w-0.5 h-full ${colors.line} opacity-60`} style={{ marginLeft: -1 }} />
-                    <div className={`absolute -top-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full ${colors.line} ring-2 ring-white shadow-sm`} />
-                    <div
-                      className={`absolute left-1 whitespace-nowrap text-[9px] font-semibold px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} shadow-sm`}
-                      style={{ top: 12 + lane * 18 }}
-                    >
-                      {dl.title}
-                    </div>
-                  </div>
-                );
-              })}
+              {deadlineLayout.map(({ dl, offset, lane }) => (
+                <DeadlineMarker
+                  key={dl.id}
+                  deadline={dl}
+                  offset={offset}
+                  lane={lane}
+                  totalHeight={totalBodyHeight}
+                  columnWidth={columnWidth}
+                  onUpdate={onDeadlineUpdate}
+                />
+              ))}
 
               {/* Today marker */}
               {todayOffset >= 0 && todayOffset <= totalWidth && (
