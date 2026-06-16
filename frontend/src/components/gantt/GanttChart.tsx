@@ -15,6 +15,7 @@ import { CalendarDays, Download, ImageDown, ZoomIn } from "lucide-react";
 import { exportTimelineToXlsx } from "@/lib/exportXlsx";
 import { exportTimelineToPng } from "@/lib/exportPng";
 import { issueTypeBadgeStyle } from "@/lib/jira";
+import { STORAGE_KEY, loadGanttRange } from "@/lib/ganttSettings";
 
 interface GanttChartProps {
   members: Member[];
@@ -40,8 +41,6 @@ const ZOOM_LEVELS = [
   { label: "125%", scale: 1.25 },
   { label: "150%", scale: 1.5 },
 ] as const;
-
-const STORAGE_KEY = "gantt-settings";
 
 function loadSettings(): { rangeStart?: string; rangeEnd?: string; zoom?: number } {
   try {
@@ -92,21 +91,11 @@ type RowItem =
   | { kind: "header"; member: Member; colorIdx: number; taskCount: number }
   | { kind: "task"; task: TaskSetting; colorIdx: number; memberEmail: string };
 
-function currentMonthStart(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-}
-
-function nextMonthEnd(): string {
-  const d = new Date();
-  const last = new Date(d.getFullYear(), d.getMonth() + 2, 0);
-  return formatDate(last);
-}
-
 export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl = "", onTaskUpdate, onOpenTask, onEventUpdate, onDeadlineUpdate }: GanttChartProps) {
   const saved = useMemo(() => loadSettings(), []);
-  const [rangeStartStr, setRangeStartStr] = useState(() => saved.rangeStart ?? currentMonthStart());
-  const [rangeEndStr, setRangeEndStr] = useState(() => saved.rangeEnd ?? nextMonthEnd());
+  const initialRange = useMemo(() => loadGanttRange(), []);
+  const [rangeStartStr, setRangeStartStr] = useState(initialRange.rangeStart);
+  const [rangeEndStr, setRangeEndStr] = useState(initialRange.rangeEnd);
   const [zoomIndex, setZoomIndex] = useState(() => {
     const idx = ZOOM_LEVELS.findIndex((z) => z.scale === saved.zoom);
     return idx >= 0 ? idx : 1;
