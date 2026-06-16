@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { Deadline } from "@/types";
 import { createDeadline, updateDeadline, deleteDeadline } from "@/api/deadlines";
+import { loadGanttRange } from "@/lib/ganttSettings";
+import { formatShortDate } from "@/lib/dates";
 import {
   Sheet,
   SheetContent,
@@ -42,6 +44,9 @@ export function DeadlinePanel({ deadlines, onDeadlinesChange, onClose }: Deadlin
   const [form, setForm] = useState<DeadlineFormData>(emptyForm);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Captured once on open; range can't change behind the modal overlay.
+  const [range] = useState(loadGanttRange);
 
   function startAdd() {
     setEditing(null);
@@ -93,14 +98,20 @@ export function DeadlinePanel({ deadlines, onDeadlinesChange, onClose }: Deadlin
     return colorOptions.find((c) => c.value === color)?.className ?? "bg-red-500";
   }
 
-  const sorted = [...deadlines].sort((a, b) => a.date.localeCompare(b.date));
+  const visible = deadlines.filter((d) => d.date >= range.rangeStart && d.date <= range.rangeEnd);
+  const sorted = [...visible].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
       <SheetContent side="right" style={{ maxWidth: 420 }}>
         <SheetHeader>
           <SheetTitle>Deadlines</SheetTitle>
-          <SheetDescription>{deadlines.length} deadlines</SheetDescription>
+          <SheetDescription>
+            {visible.length === deadlines.length
+              ? `${deadlines.length} deadlines`
+              : `${visible.length} of ${deadlines.length} deadlines`}{" · "}
+            {formatShortDate(range.rangeStart)} &rarr; {formatShortDate(range.rangeEnd)}
+          </SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-4 space-y-2">
@@ -136,6 +147,16 @@ export function DeadlinePanel({ deadlines, onDeadlinesChange, onClose }: Deadlin
               </div>
               <p className="text-[13px] text-muted-foreground font-medium">No deadlines yet</p>
               <p className="text-[11px] text-muted-foreground mt-1">Add milestones and release dates to track.</p>
+            </div>
+          )}
+
+          {deadlines.length > 0 && visible.length === 0 && !showForm && (
+            <div className="text-center py-12">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                <Flag className="size-6 text-muted-foreground" />
+              </div>
+              <p className="text-[13px] text-muted-foreground font-medium">No deadlines in this range</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Adjust the timeline&rsquo;s From / To to see more.</p>
             </div>
           )}
         </div>
