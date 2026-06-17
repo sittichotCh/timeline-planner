@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Member, TaskSetting, TaskStatus, JiraIssue, Deadline } from "@/types";
 import { deleteTask, fetchTasks, reorderTasks, upsertTask } from "@/api/tasks";
 import { fetchJiraConfig, syncJira } from "@/api/jira";
-import { devPointsToEffort, issueTypeBadgeStyle } from "@/lib/jira";
+import { devPointsToEffort, formatEffortDays, issueTypeBadgeStyle } from "@/lib/jira";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -227,8 +227,8 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
             priority: issue.fields?.priority?.name ?? task.priority,
             status: issue.fields?.status?.name ?? task.status,
             issue_type: issue.fields?.issuetype?.name ?? task.issue_type,
-            // Re-apply Dev points → effort; keep the existing effort if unset.
-            effort: devPointsToEffort(issue.fields?.dev_points) ?? task.effort,
+            // Re-apply Dev points → effort; empty Dev points clears it to 0 ("-").
+            effort: devPointsToEffort(issue.fields?.dev_points) ?? 0,
           };
           const saved = await upsertTask(updated);
           updatedTasks.push(saved);
@@ -431,7 +431,7 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
                       {task.start_date || <span className="text-muted-foreground/50">—</span>}
                     </td>
                     <td className="px-3 py-1.5 text-[11px] text-muted-foreground tabular-nums">
-                      {task.effort} day{task.effort > 1 ? "s" : ""}
+                      {formatEffortDays(task.effort)}
                     </td>
                     <td className="px-3 py-1.5 text-[12px] text-muted-foreground">
                       {getDeadlineName(task.deadline_id) ? (

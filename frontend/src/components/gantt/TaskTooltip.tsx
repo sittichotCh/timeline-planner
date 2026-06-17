@@ -1,5 +1,5 @@
 import type { TaskSetting, Deadline } from "@/types";
-import { issueTypeBadgeStyle } from "@/lib/jira";
+import { formatEffortDays, issueTypeBadgeStyle } from "@/lib/jira";
 
 interface TaskTooltipProps {
   task: TaskSetting;
@@ -57,7 +57,7 @@ export function TaskTooltip({ task, jiraBaseUrl, position, deadlines = [] }: Tas
             <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 text-gray-400">
               <path fillRule="evenodd" d="M8 15A7 7 0 108 1a7 7 0 000 14zm.75-10.25a.75.75 0 00-1.5 0v3.5c0 .199.079.39.22.53l2 2a.75.75 0 101.06-1.06L8.75 7.94V4.75z" clipRule="evenodd" />
             </svg>
-            {task.effort} day{task.effort > 1 ? "s" : ""}
+            {formatEffortDays(task.effort)}
           </div>
         </div>
         {deadline && (
