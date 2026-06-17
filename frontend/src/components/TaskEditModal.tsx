@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Member, TaskSetting, Deadline } from "@/types";
 import { fetchTasks, upsertTask, deleteTask } from "@/api/tasks";
 import { syncJira } from "@/api/jira";
-import { devPointsToEffort, issueTypeBadgeStyle } from "@/lib/jira";
+import { devPointsToEffort, formatEffortDays, issueTypeBadgeStyle } from "@/lib/jira";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -200,7 +200,8 @@ export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSa
 
           <div>
             <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Effort (days)</Label>
-            <Input type="number" min={0.5} step={0.5} className="h-8 !text-[12px] mt-1" value={form.effort} onChange={(e) => setForm({ ...form, effort: Number(e.target.value) })} />
+            <Input type="text" disabled className="h-8 !text-[12px] mt-1" value={formatEffortDays(form.effort)} />
+            <p className="text-[10px] text-muted-foreground mt-1">From Jira Dev points</p>
           </div>
 
           <div>
