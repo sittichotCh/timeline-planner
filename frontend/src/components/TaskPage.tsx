@@ -227,8 +227,8 @@ export function TaskPage({ tasks, members, deadlines, onTasksChange, initialEdit
             priority: issue.fields?.priority?.name ?? task.priority,
             status: issue.fields?.status?.name ?? task.status,
             issue_type: issue.fields?.issuetype?.name ?? task.issue_type,
-            // Re-apply Dev points → effort; keep the existing effort if unset.
-            effort: devPointsToEffort(issue.fields?.dev_points) ?? task.effort,
+            // Re-apply Dev points → effort; empty Dev points clears it to 0 ("-").
+            effort: devPointsToEffort(issue.fields?.dev_points) ?? 0,
           };
           const saved = await upsertTask(updated);
           updatedTasks.push(saved);

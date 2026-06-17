@@ -103,7 +103,7 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
       issue_type: issue.fields?.issuetype?.name ?? undefined,
       member_email: assigneeEmail,
       start_date: "",
-      effort: devPointsToEffort(issue.fields?.dev_points) ?? 1,
+      effort: devPointsToEffort(issue.fields?.dev_points) ?? 0,
       rank: 0,
       plan_status: "OPEN",
     };

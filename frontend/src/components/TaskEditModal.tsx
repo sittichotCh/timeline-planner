@@ -95,7 +95,7 @@ export function TaskEditModal({ task, members, deadlines, jiraBaseUrl = "", onSa
         priority: issue.fields?.priority?.name ?? f.priority,
         status: issue.fields?.status?.name ?? f.status,
         issue_type: issue.fields?.issuetype?.name ?? f.issue_type,
-        effort: devPointsToEffort(issue.fields?.dev_points) ?? f.effort,
+        effort: devPointsToEffort(issue.fields?.dev_points) ?? 0,
       }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Resync failed");
