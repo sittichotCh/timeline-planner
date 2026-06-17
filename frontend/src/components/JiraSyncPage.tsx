@@ -51,6 +51,9 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [hideAdded, setHideAdded] = useState(
+    () => localStorage.getItem("jira_hideAdded") !== "false",
+  );
 
   async function handleSync(e: React.FormEvent) {
     e.preventDefault();
@@ -169,6 +172,10 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
     return added.has(key) || tasks.some((t) => t.task_id === key);
   }
 
+  function isPreExisting(key: string): boolean {
+    return !added.has(key) && tasks.some((t) => t.task_id === key);
+  }
+
   function toggleSelectAll() {
     const selectable = issues.filter((i) => !isAlreadyAdded(i.key));
     if (selected.size === selectable.length) {
@@ -179,6 +186,9 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
   }
 
   const selectableCount = issues.filter((i) => !isAlreadyAdded(i.key)).length;
+  const visibleIssues = hideAdded
+    ? issues.filter((i) => !isPreExisting(i.key))
+    : issues;
 
   return (
     <div className="h-full flex flex-col">
@@ -243,6 +253,17 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
           <Badge variant="secondary" className="text-[11px]">
             {total ? `${issues.length} / ${total}` : issues.length}
           </Badge>
+          <div className="flex items-center gap-1.5">
+            <Checkbox
+              checked={hideAdded}
+              onCheckedChange={(c) => {
+                const next = c === true;
+                setHideAdded(next);
+                localStorage.setItem("jira_hideAdded", String(next));
+              }}
+            />
+            <Label className="text-[11px] cursor-pointer">Hide added</Label>
+          </div>
           <div className="ml-auto flex gap-1.5">
             <Button variant="outline" size="xs" onClick={handleAddSelected} disabled={selected.size === 0} className="text-[11px]">
               Add Selected ({selected.size})
@@ -279,7 +300,7 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
               </tr>
             </thead>
             <tbody>
-              {issues.map((issue) => {
+              {visibleIssues.map((issue) => {
                 const isAdded = isAlreadyAdded(issue.key);
                 const isSelected = selected.has(issue.key);
 
