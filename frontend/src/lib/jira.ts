@@ -9,6 +9,12 @@ export function devPointsToEffort(devPoints: number | null | undefined): number 
   return devPoints;
 }
 
+/** Format a task's effort for display. Returns "-" when there is no estimate (<= 0). */
+export function formatEffortDays(effort: number): string {
+  if (effort <= 0) return "-";
+  return `${effort} day${effort > 1 ? "s" : ""}`;
+}
+
 /**
  * Tailwind classes for a Jira issue-type badge, keyed by type name. Unknown
  * types fall back to a neutral style via issueTypeBadgeStyle().
