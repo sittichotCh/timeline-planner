@@ -190,6 +190,8 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
     ? issues.filter((i) => !isPreExisting(i.key))
     : issues;
 
+  const hiddenCount = issues.length - visibleIssues.length;
+
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
@@ -251,7 +253,11 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
             <Label className="text-[11px] cursor-pointer">Select all</Label>
           </div>
           <Badge variant="secondary" className="text-[11px]">
-            {total ? `${issues.length} / ${total}` : issues.length}
+            {hideAdded && hiddenCount > 0
+              ? `${visibleIssues.length} of ${issues.length}`
+              : total
+                ? `${issues.length} / ${total}`
+                : issues.length}
           </Badge>
           <div className="flex items-center gap-1.5">
             <Checkbox
@@ -284,6 +290,14 @@ export function JiraSyncPage({ members, tasks, onTasksChange, onMembersChange }:
             </div>
             <p className="text-[13px] text-muted-foreground font-medium">Ready to sync</p>
             <p className="text-[11px] text-muted-foreground mt-1">Enter a JQL query and click Fetch to find issues.</p>
+          </div>
+        ) : visibleIssues.length === 0 && !syncing ? (
+          <div className="text-center py-20">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3">
+              <Check className="size-6 text-emerald-600" />
+            </div>
+            <p className="text-[13px] text-muted-foreground font-medium">All fetched issues are already added</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Uncheck &ldquo;Hide added&rdquo; to see them.</p>
           </div>
         ) : (
           <table className="w-full text-[12px]">
