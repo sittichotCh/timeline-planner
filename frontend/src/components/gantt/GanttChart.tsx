@@ -72,6 +72,7 @@ interface TeamEvent {
   title: string;
   start_date: string;
   end_date: string;
+  counts_as_working_day: boolean;
 }
 
 function splitEvents(events: CalendarEvent[]): { team: TeamEvent[]; personal: CalendarEvent[] } {
@@ -79,7 +80,7 @@ function splitEvents(events: CalendarEvent[]): { team: TeamEvent[]; personal: Ca
   const personal: CalendarEvent[] = [];
   for (const ev of events) {
     if (ev.scope === "team") {
-      team.push({ key: ev.id, type: ev.type, title: ev.title, start_date: ev.start_date, end_date: ev.end_date });
+      team.push({ key: ev.id, type: ev.type, title: ev.title, start_date: ev.start_date, end_date: ev.end_date, counts_as_working_day: ev.counts_as_working_day });
     } else {
       personal.push(ev);
     }
@@ -178,6 +179,9 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
       const set = new Set<string>();
       const memberEvents = [...personal.filter((e) => e.member_emails.includes(member.email)), ...team];
       for (const event of memberEvents) {
+        // Events flagged "counts as a working day" do not reduce capacity —
+        // tasks schedule straight through their dates.
+        if (event.counts_as_working_day) continue;
         const start = parseDate(event.start_date);
         const end = parseDate(event.end_date);
         const days = diffDays(end, start) + 1;

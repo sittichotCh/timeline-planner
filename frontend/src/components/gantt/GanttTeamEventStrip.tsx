@@ -12,6 +12,7 @@ interface TeamEvent {
   title: string;
   start_date: string;
   end_date: string;
+  counts_as_working_day: boolean;
 }
 
 interface GanttTeamEventStripProps {
@@ -101,7 +102,7 @@ export function GanttTeamEventStrip({ teamEvents, rangeStart, columnWidth, total
           onMouseLeave={() => setHovered(null)}
         >
           <EventTooltip
-            event={{ id: hovered.key, member_emails: [], scope: "team", type: hovered.type, title: hovered.title, start_date: hovered.start_date, end_date: hovered.end_date }}
+            event={{ id: hovered.key, member_emails: [], scope: "team", type: hovered.type, title: hovered.title, start_date: hovered.start_date, end_date: hovered.end_date, counts_as_working_day: hovered.counts_as_working_day }}
             position={{ x: 0, y: 0 }}
           />
         </div>,
@@ -141,6 +142,7 @@ function TeamEventCap({ item, height, columnWidth, totalWidth, onEventUpdate, on
         title: item.ev.title,
         start_date: shiftISODate(item.ev.start_date, days),
         end_date: shiftISODate(item.ev.end_date, days),
+        counts_as_working_day: item.ev.counts_as_working_day,
       }),
   );
 

@@ -121,6 +121,7 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
         title: titleForType(form.type, form.title),
         start_date: form.start_date,
         end_date: form.end_date,
+        counts_as_working_day: false,
       };
       if (editing) {
         const updated = await updateEvent(editing, payload);
