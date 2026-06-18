@@ -1,5 +1,6 @@
 import type { CalendarEvent } from "@/types";
 import { addDays, diffDays, parseDate, shiftISODate } from "@/lib/dates";
+import { hatchBackground } from "@/lib/eventHatch";
 import { useDayDrag } from "./useDayDrag";
 import { DragDatePill } from "./DragDatePill";
 
@@ -49,6 +50,10 @@ export function PersonalEventBars({
       {event.member_emails.map((email) => {
         const range = memberYRanges.get(email);
         if (!range) return null;
+        const working = event.counts_as_working_day;
+        const fillStyle = working
+          ? { backgroundImage: hatchBackground(event.type), border: "1px dashed rgba(107, 114, 128, 0.6)" }
+          : { backgroundColor: "rgba(186, 0, 0, 0.15)", border: "1px solid rgba(186, 0, 0, 0.4)" };
         return (
           <div
             key={`${event.id}-${email}`}
@@ -58,8 +63,7 @@ export function PersonalEventBars({
               width: clippedWidth,
               top: range.top,
               height: range.height,
-              backgroundColor: "rgba(186, 0, 0, 0.15)",
-              border: "1px solid rgba(186, 0, 0, 0.4)",
+              ...fillStyle,
             }}
             onMouseDown={onMouseDown}
             onMouseEnter={(e) => {
@@ -72,7 +76,7 @@ export function PersonalEventBars({
               onHideTooltip();
             }}
           >
-            <span className="text-[10px] font-medium text-red-900/60 truncate px-1 pointer-events-none">
+            <span className={`text-[10px] font-medium truncate px-1 pointer-events-none ${working ? "text-foreground/70" : "text-red-900/60"}`}>
               {event.title}
             </span>
           </div>
