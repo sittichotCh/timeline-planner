@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	"timeline-planner/internal/model"
@@ -11,7 +12,7 @@ import (
 
 const eventsFile = "events.csv"
 
-var eventsHeader = []string{"id", "member_emails", "scope", "type", "title", "start_date", "end_date"}
+var eventsHeader = []string{"id", "member_emails", "scope", "type", "title", "start_date", "end_date", "counts_as_working_day"}
 
 func genID() string {
 	b := make([]byte, 8)
@@ -40,7 +41,7 @@ func joinEmails(emails []string) string {
 }
 
 func parseEventRow(row []string) model.Event {
-	return model.Event{
+	e := model.Event{
 		ID:           row[0],
 		MemberEmails: parseEmails(row[1]),
 		Scope:        model.EventScope(row[2]),
@@ -49,10 +50,14 @@ func parseEventRow(row []string) model.Event {
 		StartDate:    row[5],
 		EndDate:      row[6],
 	}
+	if len(row) >= 8 {
+		e.CountsAsWorkingDay = strings.EqualFold(strings.TrimSpace(row[7]), "true")
+	}
+	return e
 }
 
 func eventToRow(e model.Event) []string {
-	return []string{e.ID, joinEmails(e.MemberEmails), string(e.Scope), string(e.Type), e.Title, e.StartDate, e.EndDate}
+	return []string{e.ID, joinEmails(e.MemberEmails), string(e.Scope), string(e.Type), e.Title, e.StartDate, e.EndDate, strconv.FormatBool(e.CountsAsWorkingDay)}
 }
 
 func (s *Store) GetEvents() ([]model.Event, error) {

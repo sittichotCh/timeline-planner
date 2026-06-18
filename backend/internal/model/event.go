@@ -17,13 +17,14 @@ const (
 )
 
 type Event struct {
-	ID           string     `json:"id"`
-	MemberEmails []string   `json:"member_emails"`
-	Scope        EventScope `json:"scope"`
-	Type         EventType  `json:"type"`
-	Title        string     `json:"title"`
-	StartDate    string     `json:"start_date"`
-	EndDate      string     `json:"end_date"`
+	ID                 string     `json:"id"`
+	MemberEmails       []string   `json:"member_emails"`
+	Scope              EventScope `json:"scope"`
+	Type               EventType  `json:"type"`
+	Title              string     `json:"title"`
+	StartDate          string     `json:"start_date"`
+	EndDate            string     `json:"end_date"`
+	CountsAsWorkingDay bool       `json:"counts_as_working_day"`
 }
 
 // NormalizeEventType maps legacy type values to the current set
