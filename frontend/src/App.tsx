@@ -12,11 +12,12 @@ import { JiraSyncPage } from "@/components/JiraSyncPage";
 import { TaskPage } from "@/components/TaskPage";
 import { TaskEditModal } from "@/components/TaskEditModal";
 import { DeadlinePanel } from "@/components/DeadlinePanel";
+import { ImportPanel } from "@/components/ImportPanel";
 import { Button } from "@/components/ui/button";
-import { Users, CalendarDays, ClipboardCheck, RefreshCw, Flag, GanttChartSquare } from "lucide-react";
+import { Users, CalendarDays, ClipboardCheck, RefreshCw, Flag, GanttChartSquare, Upload } from "lucide-react";
 
 type PageView = "timeline" | "tasks" | "jira";
-type SlidePanel = "members" | "events" | "deadlines" | null;
+type SlidePanel = "members" | "events" | "deadlines" | "import" | null;
 
 const pageItems: { key: PageView; label: string; icon: typeof Users }[] = [
   { key: "timeline", label: "Timeline", icon: GanttChartSquare },
@@ -24,10 +25,11 @@ const pageItems: { key: PageView; label: string; icon: typeof Users }[] = [
   { key: "jira", label: "Jira Sync", icon: RefreshCw },
 ];
 
-const panelItems: { key: "members" | "events" | "deadlines"; label: string; icon: typeof Users }[] = [
+const panelItems: { key: "members" | "events" | "deadlines" | "import"; label: string; icon: typeof Users }[] = [
   { key: "members", label: "Members", icon: Users },
   { key: "events", label: "Events", icon: CalendarDays },
   { key: "deadlines", label: "Deadlines", icon: Flag },
+  { key: "import", label: "Import", icon: Upload },
 ];
 
 function App() {
@@ -220,6 +222,19 @@ function App() {
         <DeadlinePanel
           deadlines={deadlines}
           onDeadlinesChange={setDeadlines}
+          onClose={() => setPanel(null)}
+        />
+      )}
+      {panel === "import" && (
+        <ImportPanel
+          onImported={() => {
+            Promise.all([fetchEvents(), fetchDeadlines()])
+              .then(([e, d]) => {
+                setEvents(e);
+                setDeadlines(d);
+              })
+              .catch(() => {});
+          }}
           onClose={() => setPanel(null)}
         />
       )}
