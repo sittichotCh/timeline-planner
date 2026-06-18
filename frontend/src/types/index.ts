@@ -19,6 +19,7 @@ export interface CalendarEvent {
   title: string;
   start_date: string;
   end_date: string;
+  counts_as_working_day: boolean;
 }
 
 export interface TaskSetting {

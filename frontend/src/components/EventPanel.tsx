@@ -38,6 +38,7 @@ interface EventFormData {
   title: string;
   start_date: string;
   end_date: string;
+  counts_as_working_day: boolean;
 }
 
 const emptyForm: EventFormData = {
@@ -47,6 +48,7 @@ const emptyForm: EventFormData = {
   title: "",
   start_date: "",
   end_date: "",
+  counts_as_working_day: false,
 };
 
 const eventTypes: { value: EventType; label: string; color: string }[] = [
@@ -92,6 +94,7 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
       title: event.title,
       start_date: event.start_date,
       end_date: event.end_date,
+      counts_as_working_day: event.counts_as_working_day,
     });
     setShowForm(true);
     setError(null);
@@ -121,6 +124,7 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
         title: titleForType(form.type, form.title),
         start_date: form.start_date,
         end_date: form.end_date,
+        counts_as_working_day: form.counts_as_working_day,
       };
       if (editing) {
         const updated = await updateEvent(editing, payload);
@@ -194,6 +198,9 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
                       <Badge variant={event.scope === "team" ? "default" : "secondary"} className="text-[10px] flex-shrink-0">
                         {event.scope === "team" ? "Team" : "Personal"}
                       </Badge>
+                      {event.counts_as_working_day && (
+                        <Badge variant="secondary" className="text-[10px] flex-shrink-0">working day</Badge>
+                      )}
                     </div>
                     <div className="text-[11px] text-muted-foreground">
                       {event.scope === "team"
@@ -310,6 +317,18 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
                 <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">End</Label>
                 <Input type="date" className="h-8 !text-[12px] mt-1" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
               </div>
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-[12px] cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 accent-indigo-600"
+                  checked={form.counts_as_working_day}
+                  onChange={(e) => setForm({ ...form, counts_as_working_day: e.target.checked })}
+                />
+                <span className="font-medium">Counts as a working day</span>
+              </label>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Tasks still schedule through these dates.</p>
             </div>
             <div className="flex gap-2 pt-1">
               <Button type="submit" size="sm" className="flex-1">{editing ? "Update" : "Add Event"}</Button>

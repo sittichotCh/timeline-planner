@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { addDays, parseDate, diffDays, shiftISODate } from "@/lib/dates";
 import type { CalendarEvent, EventType } from "@/types";
+import { hatchBackground } from "@/lib/eventHatch";
 import { EventTooltip } from "./EventTooltip";
 import { useDayDrag } from "./useDayDrag";
 import { DragDatePill } from "./DragDatePill";
@@ -12,6 +13,7 @@ interface TeamEvent {
   title: string;
   start_date: string;
   end_date: string;
+  counts_as_working_day: boolean;
 }
 
 interface GanttTeamEventStripProps {
@@ -25,11 +27,18 @@ interface GanttTeamEventStripProps {
 // Cap styles mirror the dashed band below (GanttMergedEventRow): saturated fill
 // + matching dashed border colour, so each label reads as the top of the band's
 // box rather than a separate pill.
-const capStyles: Record<string, string> = {
-  leave: "bg-orange-100 text-orange-700 border-orange-500/70",
-  oncall: "bg-red-100 text-red-700 border-red-500/70",
-  holiday: "bg-amber-100 text-amber-700 border-amber-500/70",
-  other: "bg-gray-100 text-gray-600 border-gray-500/70",
+const capBase: Record<string, string> = {
+  leave: "text-orange-700 border-orange-500/70",
+  oncall: "text-red-700 border-red-500/70",
+  holiday: "text-amber-700 border-amber-500/70",
+  other: "text-gray-600 border-gray-500/70",
+};
+
+const capFill: Record<string, string> = {
+  leave: "bg-orange-100",
+  oncall: "bg-red-100",
+  holiday: "bg-amber-100",
+  other: "bg-gray-100",
 };
 
 const LANE_HEIGHT = 20;
@@ -101,7 +110,7 @@ export function GanttTeamEventStrip({ teamEvents, rangeStart, columnWidth, total
           onMouseLeave={() => setHovered(null)}
         >
           <EventTooltip
-            event={{ id: hovered.key, member_emails: [], scope: "team", type: hovered.type, title: hovered.title, start_date: hovered.start_date, end_date: hovered.end_date }}
+            event={{ id: hovered.key, member_emails: [], scope: "team", type: hovered.type, title: hovered.title, start_date: hovered.start_date, end_date: hovered.end_date, counts_as_working_day: hovered.counts_as_working_day }}
             position={{ x: 0, y: 0 }}
           />
         </div>,
@@ -141,6 +150,7 @@ function TeamEventCap({ item, height, columnWidth, totalWidth, onEventUpdate, on
         title: item.ev.title,
         start_date: shiftISODate(item.ev.start_date, days),
         end_date: shiftISODate(item.ev.end_date, days),
+        counts_as_working_day: item.ev.counts_as_working_day,
       }),
   );
 
@@ -151,13 +161,15 @@ function TeamEventCap({ item, height, columnWidth, totalWidth, onEventUpdate, on
   const clippedWidth = Math.min(right, totalWidth) - clippedLeft;
   // lane 0 sits flush at the bottom (capping the band); extra lanes stack upward
   const top = height - (item.lane + 1) * LANE_HEIGHT - item.lane * LANE_GAP;
-  const style = capStyles[item.ev.type] ?? capStyles.other;
+  const working = item.ev.counts_as_working_day;
+  const base = capBase[item.ev.type] ?? capBase.other;
+  const fill = working ? "" : (capFill[item.ev.type] ?? capFill.other);
 
   return (
     <>
       <div
-        className={`absolute flex items-center border-2 border-b-0 border-dashed text-[10px] font-medium px-1.5 overflow-hidden whitespace-nowrap cursor-grab select-none ${dragging ? "cursor-grabbing z-20 opacity-90" : ""} ${style}`}
-        style={{ left: clippedLeft, width: clippedWidth, top, height: LANE_HEIGHT }}
+        className={`absolute flex items-center border-2 border-b-0 border-dashed text-[10px] font-medium px-1.5 overflow-hidden whitespace-nowrap cursor-grab select-none ${dragging ? "cursor-grabbing z-20 opacity-90" : ""} ${base} ${fill}`}
+        style={{ left: clippedLeft, width: clippedWidth, top, height: LANE_HEIGHT, ...(working ? { backgroundImage: hatchBackground(item.ev.type) } : {}) }}
         onMouseDown={onMouseDown}
         onMouseEnter={(e) => {
           if (dragging) return;

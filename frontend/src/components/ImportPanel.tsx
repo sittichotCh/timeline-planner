@@ -18,10 +18,10 @@ interface ImportPanelProps {
 }
 
 const SAMPLE_CSV =
-  "event_type,title,start_date,end_date,member_emails,scope,type,color\n" +
-  "event,Regression,2026-05-25,2026-05-29,alice@co.com|bob@co.com,personal,other,\n" +
-  "event,,2026-06-01,2026-06-01,,team,holiday,\n" +
-  "deadline,Release 1%,2026-08-03,,,,,red\n";
+  "event_type,title,start_date,end_date,member_emails,scope,type,color,counts_as_working_day\n" +
+  "event,Regression,2026-05-25,2026-05-29,alice@co.com|bob@co.com,personal,other,,false\n" +
+  "event,On-call,2026-06-01,2026-06-05,carol@co.com,personal,oncall,,true\n" +
+  "deadline,Release 1%,2026-08-03,,,,,red,\n";
 
 function downloadSample() {
   const blob = new Blob([SAMPLE_CSV], { type: "text/csv" });
