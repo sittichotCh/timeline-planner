@@ -151,3 +151,29 @@ func TestParseFatalErrors(t *testing.T) {
 		t.Error("expected error for missing event_type header")
 	}
 }
+
+func TestParseDeadlineColorDefaults(t *testing.T) {
+	csv := "event_type,title,start_date,color\n" +
+		"deadline,No Color,2026-08-01,\n" +
+		"deadline,Bad Color,2026-08-02,chartreuse\n" +
+		"deadline,Good Color,2026-08-03,violet\n"
+	_, deadlines, rowErrs, err := Parse(strings.NewReader(csv))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(rowErrs) != 0 {
+		t.Fatalf("unexpected row errors: %v", rowErrs)
+	}
+	if len(deadlines) != 3 {
+		t.Fatalf("want 3 deadlines, got %d", len(deadlines))
+	}
+	if deadlines[0].Color != "red" {
+		t.Errorf("blank color: got %q, want red (default)", deadlines[0].Color)
+	}
+	if deadlines[1].Color != "red" {
+		t.Errorf("unknown color: got %q, want red (default)", deadlines[1].Color)
+	}
+	if deadlines[2].Color != "violet" {
+		t.Errorf("valid color: got %q, want violet (kept)", deadlines[2].Color)
+	}
+}

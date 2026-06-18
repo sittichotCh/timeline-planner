@@ -27,6 +27,9 @@ func TestCanonicalTitle(t *testing.T) {
 	if title, ok := CanonicalTitle(EventHoliday); !ok || title != "Holiday" {
 		t.Errorf("CanonicalTitle(holiday) = %q, %v; want \"Holiday\", true", title, ok)
 	}
+	if title, ok := CanonicalTitle(EventOncall); !ok || title != "Oncall" {
+		t.Errorf("CanonicalTitle(oncall) = %q, %v; want \"Oncall\", true", title, ok)
+	}
 	if title, ok := CanonicalTitle(EventOther); ok || title != "" {
 		t.Errorf("CanonicalTitle(other) = %q, %v; want \"\", false", title, ok)
 	}
