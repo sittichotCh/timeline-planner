@@ -142,13 +142,17 @@ func parseEvent(row []string, get getter) (model.Event, string) {
 		return model.Event{}, "member_emails is required for personal events"
 	}
 
+	cwd := strings.ToLower(get(row, "counts_as_working_day"))
+	countsWorking := cwd == "true" || cwd == "1" || cwd == "yes"
+
 	return model.Event{
-		MemberEmails: emails,
-		Scope:        scope,
-		Type:         etype,
-		Title:        title,
-		StartDate:    start,
-		EndDate:      end,
+		MemberEmails:       emails,
+		Scope:              scope,
+		Type:               etype,
+		Title:              title,
+		StartDate:          start,
+		EndDate:            end,
+		CountsAsWorkingDay: countsWorking,
 	}, ""
 }
 

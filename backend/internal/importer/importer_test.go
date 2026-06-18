@@ -177,3 +177,43 @@ func TestParseDeadlineColorDefaults(t *testing.T) {
 		t.Errorf("valid color: got %q, want violet (kept)", deadlines[2].Color)
 	}
 }
+
+func TestParseEventCountsAsWorkingDay(t *testing.T) {
+	csv := "event_type,title,start_date,end_date,member_emails,scope,type,counts_as_working_day\n" +
+		"event,A,2026-06-01,2026-06-02,a@co.com,personal,other,true\n" +
+		"event,B,2026-06-03,2026-06-04,a@co.com,personal,other,YES\n" +
+		"event,C,2026-06-05,2026-06-06,a@co.com,personal,other,1\n" +
+		"event,D,2026-06-07,2026-06-08,a@co.com,personal,other,false\n" +
+		"event,E,2026-06-09,2026-06-10,a@co.com,personal,other,\n"
+	events, _, rowErrs, err := Parse(strings.NewReader(csv))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(rowErrs) != 0 {
+		t.Fatalf("unexpected row errors: %v", rowErrs)
+	}
+	if len(events) != 5 {
+		t.Fatalf("want 5 events, got %d", len(events))
+	}
+	want := map[string]bool{"A": true, "B": true, "C": true, "D": false, "E": false}
+	for _, e := range events {
+		if e.CountsAsWorkingDay != want[e.Title] {
+			t.Errorf("event %s: CountsAsWorkingDay=%v, want %v", e.Title, e.CountsAsWorkingDay, want[e.Title])
+		}
+	}
+}
+
+func TestParseDeadlineIgnoresCountsAsWorkingDay(t *testing.T) {
+	csv := "event_type,title,start_date,counts_as_working_day\n" +
+		"deadline,Ship,2026-08-03,true\n"
+	_, deadlines, rowErrs, err := Parse(strings.NewReader(csv))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(rowErrs) != 0 {
+		t.Fatalf("unexpected row errors: %v", rowErrs)
+	}
+	if len(deadlines) != 1 {
+		t.Fatalf("want 1 deadline, got %d", len(deadlines))
+	}
+}
