@@ -65,3 +65,15 @@ export interface JiraIssue {
     dev_points?: number | null;
   };
 }
+
+export interface ImportRowError {
+  row: number;
+  reason: string;
+}
+
+export interface ImportResult {
+  imported_events: number;
+  imported_deadlines: number;
+  skipped_duplicates: number;
+  errors: ImportRowError[];
+}

@@ -39,33 +39,6 @@ func joinEmails(emails []string) string {
 	return strings.Join(emails, "|")
 }
 
-// migrateEventType maps legacy type values to the current set
-// (leave, oncall, holiday, other).
-func migrateEventType(t model.EventType) model.EventType {
-	switch t {
-	case "vacation":
-		return model.EventLeave
-	case "busy":
-		return model.EventOncall
-	case "weekend":
-		return model.EventOther
-	}
-	return t
-}
-
-// canonicalTitle returns the fixed display title for non-"other" types.
-func canonicalTitle(t model.EventType) (string, bool) {
-	switch t {
-	case model.EventLeave:
-		return "Leave", true
-	case model.EventOncall:
-		return "Oncall", true
-	case model.EventHoliday:
-		return "Holiday", true
-	}
-	return "", false
-}
-
 func parseEventRow(row []string) model.Event {
 	return model.Event{
 		ID:           row[0],
@@ -102,11 +75,11 @@ func (s *Store) GetEvents() ([]model.Event, error) {
 			e.Scope = model.ScopePersonal
 			needsSave = true
 		}
-		if migrated := migrateEventType(e.Type); migrated != e.Type {
+		if migrated := model.NormalizeEventType(e.Type); migrated != e.Type {
 			e.Type = migrated
 			needsSave = true
 		}
-		if title, ok := canonicalTitle(e.Type); ok && e.Title != title {
+		if title, ok := model.CanonicalTitle(e.Type); ok && e.Title != title {
 			e.Title = title
 			needsSave = true
 		}
@@ -136,7 +109,7 @@ func (s *Store) GetEventsByMember(email string) ([]model.Event, error) {
 }
 
 func (s *Store) CreateEvent(e model.Event) error {
-	if title, ok := canonicalTitle(e.Type); ok {
+	if title, ok := model.CanonicalTitle(e.Type); ok {
 		e.Title = title
 	}
 	events, err := s.GetEvents()
@@ -148,7 +121,7 @@ func (s *Store) CreateEvent(e model.Event) error {
 }
 
 func (s *Store) UpdateEvent(id string, e model.Event) error {
-	if title, ok := canonicalTitle(e.Type); ok {
+	if title, ok := model.CanonicalTitle(e.Type); ok {
 		e.Title = title
 	}
 	events, err := s.GetEvents()

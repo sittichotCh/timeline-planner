@@ -74,6 +74,8 @@ func main() {
 			deadlines.DELETE("/:id", h.Delete)
 		}
 
+		api.POST("/import", handler.NewImport(yamlStore).Upload)
+
 		jira := api.Group("/jira")
 		{
 			h := handler.NewJira(cfg)
