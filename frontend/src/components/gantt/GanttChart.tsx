@@ -27,6 +27,7 @@ interface GanttChartProps {
   onOpenTask?: (taskId: string) => void;
   onEventUpdate?: (event: CalendarEvent) => void;
   onDeadlineUpdate?: (deadline: Deadline) => void;
+  onEventDelete?: (event: CalendarEvent) => void;
 }
 
 const MEMBER_HEADER_HEIGHT = 40;
@@ -92,7 +93,7 @@ type RowItem =
   | { kind: "header"; member: Member; colorIdx: number; taskCount: number }
   | { kind: "task"; task: TaskSetting; colorIdx: number; memberEmail: string };
 
-export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl = "", onTaskUpdate, onOpenTask, onEventUpdate, onDeadlineUpdate }: GanttChartProps) {
+export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl = "", onTaskUpdate, onOpenTask, onEventUpdate, onDeadlineUpdate, onEventDelete }: GanttChartProps) {
   const saved = useMemo(() => loadSettings(), []);
   const initialRange = useMemo(() => loadGanttRange(), []);
   const [rangeStartStr, setRangeStartStr] = useState(initialRange.rangeStart);
@@ -400,6 +401,7 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
                 columnWidth={columnWidth}
                 totalWidth={totalWidth}
                 onEventUpdate={onEventUpdate}
+                onEventDelete={onEventDelete}
               />
             )}
           </div>
@@ -611,7 +613,11 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
             eventHoverTimeout.current = setTimeout(() => setHoveredEvent(null), 150);
           }}
         >
-          <EventTooltip event={hoveredEvent} position={{ x: 0, y: 0 }} />
+          <EventTooltip
+            event={hoveredEvent}
+            position={{ x: 0, y: 0 }}
+            onDelete={() => { if (hoveredEvent) { onEventDelete?.(hoveredEvent); setHoveredEvent(null); } }}
+          />
         </div>,
         document.body,
       )}

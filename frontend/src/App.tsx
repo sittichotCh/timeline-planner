@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Member, TaskSetting, CalendarEvent, Deadline } from "@/types";
 import { fetchMembers } from "@/api/members";
-import { fetchEvents, updateEvent } from "@/api/events";
+import { fetchEvents, updateEvent, deleteEvent } from "@/api/events";
 import { fetchTasks, upsertTask } from "@/api/tasks";
 import { fetchDeadlines, updateDeadline } from "@/api/deadlines";
 import { fetchJiraConfig } from "@/api/jira";
@@ -74,6 +74,15 @@ function App() {
     try {
       const saved = await updateEvent(updated.id, updated);
       setEvents((prev) => prev.map((e) => (e.id === saved.id ? saved : e)));
+    } catch {
+      fetchEvents().then(setEvents).catch(() => {});
+    }
+  }, []);
+
+  const handleEventDelete = useCallback(async (event: CalendarEvent) => {
+    setEvents((prev) => prev.filter((e) => e.id !== event.id));
+    try {
+      await deleteEvent(event.id);
     } catch {
       fetchEvents().then(setEvents).catch(() => {});
     }
@@ -173,6 +182,7 @@ function App() {
             onOpenTask={(taskId) => setEditTaskId(taskId)}
             onEventUpdate={handleEventUpdate}
             onDeadlineUpdate={handleDeadlineUpdate}
+            onEventDelete={handleEventDelete}
           />
         )}
       </main>

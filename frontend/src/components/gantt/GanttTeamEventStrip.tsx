@@ -22,6 +22,7 @@ interface GanttTeamEventStripProps {
   columnWidth: number;
   totalWidth: number;
   onEventUpdate?: (event: CalendarEvent) => void;
+  onEventDelete?: (event: CalendarEvent) => void;
 }
 
 // Cap styles mirror the dashed band below (GanttMergedEventRow): saturated fill
@@ -50,7 +51,7 @@ const LANE_GAP = 2;
 // body — label + band form one connected box. Lane 0 is anchored to the bottom
 // so it sits flush against the band; overlapping events stack upward. Lives in
 // the (horizontally-synced) header scroll area so it stays column-aligned.
-export function GanttTeamEventStrip({ teamEvents, rangeStart, columnWidth, totalWidth, onEventUpdate }: GanttTeamEventStripProps) {
+export function GanttTeamEventStrip({ teamEvents, rangeStart, columnWidth, totalWidth, onEventUpdate, onEventDelete }: GanttTeamEventStripProps) {
   const [hovered, setHovered] = useState<TeamEvent | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,6 +80,19 @@ export function GanttTeamEventStrip({ teamEvents, rangeStart, columnWidth, total
   const laneCount = laid.reduce((m, it) => Math.max(m, it.lane + 1), 0);
   const height = laneCount * (LANE_HEIGHT + LANE_GAP);
 
+  const hoveredEvent: CalendarEvent | null = hovered
+    ? {
+        id: hovered.key,
+        member_emails: [],
+        scope: "team",
+        type: hovered.type,
+        title: hovered.title,
+        start_date: hovered.start_date,
+        end_date: hovered.end_date,
+        counts_as_working_day: hovered.counts_as_working_day,
+      }
+    : null;
+
   return (
     <div className="relative bg-card" style={{ width: totalWidth, height }}>
       {laid.map((it) => (
@@ -100,7 +114,7 @@ export function GanttTeamEventStrip({ teamEvents, rangeStart, columnWidth, total
         />
       ))}
 
-      {hovered && createPortal(
+      {hovered && hoveredEvent && createPortal(
         <div
           className="fixed z-50"
           style={{ left: tooltipPos.x, top: tooltipPos.y }}
@@ -110,8 +124,9 @@ export function GanttTeamEventStrip({ teamEvents, rangeStart, columnWidth, total
           onMouseLeave={() => setHovered(null)}
         >
           <EventTooltip
-            event={{ id: hovered.key, member_emails: [], scope: "team", type: hovered.type, title: hovered.title, start_date: hovered.start_date, end_date: hovered.end_date, counts_as_working_day: hovered.counts_as_working_day }}
+            event={hoveredEvent}
             position={{ x: 0, y: 0 }}
+            onDelete={onEventDelete ? () => { if (hoveredEvent) { onEventDelete(hoveredEvent); setHovered(null); } } : undefined}
           />
         </div>,
         document.body,

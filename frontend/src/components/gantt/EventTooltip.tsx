@@ -1,8 +1,11 @@
 import type { CalendarEvent } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 interface EventTooltipProps {
   event: CalendarEvent;
   position: { x: number; y: number };
+  onDelete?: () => void;
 }
 
 const typeLabels: Record<string, string> = {
@@ -24,7 +27,7 @@ const typeStyles: Record<string, string> = {
   other: "bg-gray-50 text-gray-600 ring-1 ring-gray-200",
 };
 
-export function EventTooltip({ event, position }: EventTooltipProps) {
+export function EventTooltip({ event, position, onDelete }: EventTooltipProps) {
   return (
     <div
       className="pt-2"
@@ -55,6 +58,12 @@ export function EventTooltip({ event, position }: EventTooltipProps) {
             {event.end_date}
           </div>
         </div>
+        {onDelete && (
+          <Button variant="destructive" size="xs" className="w-full mt-1" onClick={onDelete}>
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </Button>
+        )}
       </div>
     </div>
     </div>
