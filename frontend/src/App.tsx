@@ -12,24 +12,24 @@ import { JiraSyncPage } from "@/components/JiraSyncPage";
 import { TaskPage } from "@/components/TaskPage";
 import { TaskEditModal } from "@/components/TaskEditModal";
 import { DeadlinePanel } from "@/components/DeadlinePanel";
-import { ImportPanel } from "@/components/ImportPanel";
+import { ImportPage } from "@/components/ImportPage";
 import { Button } from "@/components/ui/button";
 import { Users, CalendarDays, ClipboardCheck, RefreshCw, Flag, GanttChartSquare, Upload } from "lucide-react";
 
-type PageView = "timeline" | "tasks" | "jira";
-type SlidePanel = "members" | "events" | "deadlines" | "import" | null;
+type PageView = "timeline" | "tasks" | "jira" | "import";
+type SlidePanel = "members" | "events" | "deadlines" | null;
 
 const pageItems: { key: PageView; label: string; icon: typeof Users }[] = [
   { key: "timeline", label: "Timeline", icon: GanttChartSquare },
   { key: "tasks", label: "Tasks", icon: ClipboardCheck },
   { key: "jira", label: "Jira Sync", icon: RefreshCw },
+  { key: "import", label: "Import", icon: Upload },
 ];
 
-const panelItems: { key: "members" | "events" | "deadlines" | "import"; label: string; icon: typeof Users }[] = [
+const panelItems: { key: "members" | "events" | "deadlines"; label: string; icon: typeof Users }[] = [
   { key: "members", label: "Members", icon: Users },
   { key: "events", label: "Events", icon: CalendarDays },
   { key: "deadlines", label: "Deadlines", icon: Flag },
-  { key: "import", label: "Import", icon: Upload },
 ];
 
 function App() {
@@ -180,6 +180,18 @@ function App() {
             onTasksChange={setTasks}
             onMembersChange={setMembers}
           />
+        ) : page === "import" ? (
+          <ImportPage
+            members={members}
+            onImported={() => {
+              Promise.all([fetchEvents(), fetchDeadlines()])
+                .then(([e, d]) => {
+                  setEvents(e);
+                  setDeadlines(d);
+                })
+                .catch(() => {});
+            }}
+          />
         ) : (
           <GanttChart
             members={members}
@@ -245,20 +257,7 @@ function App() {
           onClose={() => setPanel(null)}
         />
       )}
-      {panel === "import" && (
-        <ImportPanel
-          members={members}
-          onImported={() => {
-            Promise.all([fetchEvents(), fetchDeadlines()])
-              .then(([e, d]) => {
-                setEvents(e);
-                setDeadlines(d);
-              })
-              .catch(() => {});
-          }}
-          onClose={() => setPanel(null)}
-        />
-      )}
+
     </div>
   );
 }
