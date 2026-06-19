@@ -1,62 +1,31 @@
 import { toPng } from "html-to-image";
 
 /**
- * The Gantt timeline is laid out as four nested scroll containers (a horizontal
- * header strip, a vertical sidebar, and a body that scrolls both ways). A naive
- * screenshot of the visible viewport would clip everything outside the current
- * scroll position, so before capturing we temporarily expand each container to
- * its full content size, snapshot, then restore the original inline styles.
+ * The timeline is now a single scroll container with a sticky header and sticky
+ * sidebar. To screenshot the whole thing we reset its scroll to 0,0 (so the
+ * sticky chrome sits at its natural top-left position), un-clip the scroller,
+ * snapshot the full-size inner content wrapper, then restore the live layout.
  */
 export interface PngCaptureRefs {
-  /** Wrapper that holds the header strip + body (this is the node we screenshot). */
+  /** Inner content wrapper sized to (sidebar + chart) — the node we screenshot. */
   container: HTMLElement;
-  /** Horizontally-clipped header scroll region. */
-  headerScroll: HTMLElement;
-  /** Body row that lays the sidebar and chart side by side. */
-  bodyWrapper: HTMLElement;
-  /** Vertically-clipped member/task sidebar. */
-  sidebar: HTMLElement;
-  /** Both-axis chart scroll region. */
-  chart: HTMLElement;
-  sidebarWidth: number;
-  totalWidth: number;
-  totalBodyHeight: number;
+  /** The single scroll container that clips the timeline on screen. */
+  scroller: HTMLElement;
 }
 
 export async function exportTimelineToPng(refs: PngCaptureRefs): Promise<void> {
-  const { container, headerScroll, bodyWrapper, sidebar, chart, sidebarWidth, totalWidth, totalBodyHeight } = refs;
+  const { container, scroller } = refs;
 
-  // Snapshot inline styles so we can restore the live layout afterwards.
-  const originals = [container, headerScroll, bodyWrapper, sidebar, chart].map((el) => ({
-    el,
-    cssText: el.style.cssText,
-  }));
+  const originalCss = scroller.style.cssText;
+  const prevLeft = scroller.scrollLeft;
+  const prevTop = scroller.scrollTop;
 
-  const fullWidth = sidebarWidth + totalWidth;
-
-  // Expand every clipping container to its full content size.
-  container.style.overflow = "visible";
-  container.style.width = `${fullWidth}px`;
-  container.style.height = "auto";
-
-  headerScroll.style.overflow = "visible";
-  headerScroll.style.flex = "0 0 auto";
-  headerScroll.style.width = `${totalWidth}px`;
-
-  bodyWrapper.style.overflow = "visible";
-  bodyWrapper.style.flex = "0 0 auto";
-  bodyWrapper.style.height = `${totalBodyHeight}px`;
-
-  sidebar.style.overflow = "visible";
-  sidebar.style.height = `${totalBodyHeight}px`;
-
-  chart.style.overflow = "visible";
-  chart.style.flex = "0 0 auto";
-  chart.style.width = `${totalWidth}px`;
-  chart.style.height = `${totalBodyHeight}px`;
+  scroller.scrollLeft = 0;
+  scroller.scrollTop = 0;
+  scroller.style.overflow = "visible";
 
   try {
-    // Force a reflow so the expanded dimensions are measurable.
+    // Force reflow so the expanded dimensions are measurable.
     const captureWidth = container.scrollWidth;
     const captureHeight = container.scrollHeight;
 
@@ -66,9 +35,8 @@ export async function exportTimelineToPng(refs: PngCaptureRefs): Promise<void> {
       backgroundColor: "#ffffff",
       pixelRatio: 2,
       cacheBust: true,
-      // The page's web fonts are already loaded and render correctly in the
-      // clone, so skip html-to-image's font-inlining step — it can't read the
-      // cross-origin Google Fonts stylesheet and only logs SecurityErrors.
+      // Web fonts already render in the clone; skip html-to-image's font
+      // inlining, which only logs cross-origin SecurityErrors.
       skipFonts: true,
     });
 
@@ -77,9 +45,8 @@ export async function exportTimelineToPng(refs: PngCaptureRefs): Promise<void> {
     a.download = "timeline.png";
     a.click();
   } finally {
-    // Restore the live, scrollable layout regardless of success/failure.
-    for (const { el, cssText } of originals) {
-      el.style.cssText = cssText;
-    }
+    scroller.style.cssText = originalCss;
+    scroller.scrollLeft = prevLeft;
+    scroller.scrollTop = prevTop;
   }
 }

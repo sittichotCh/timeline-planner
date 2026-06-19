@@ -107,11 +107,8 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
   const [hoveredEvent, setHoveredEvent] = useState<CalendarEvent | null>(null);
   const [eventTooltipPos, setEventTooltipPos] = useState({ x: 0, y: 0 });
   const eventHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const chartRef = useRef<HTMLDivElement>(null);
-  const headerScrollRef = useRef<HTMLDivElement>(null);
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  const timelineRef = useRef<HTMLDivElement>(null);
-  const bodyWrapperRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const captureRef = useRef<HTMLDivElement>(null);
   const [exportingPng, setExportingPng] = useState(false);
 
   const today = new Date();
@@ -248,22 +245,25 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
   }, [deadlines, rangeStart, columnWidth, totalWidth]);
 
   useEffect(() => {
-    const clientWidth = chartRef.current?.clientWidth ?? 0;
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    const viewW = scroller.clientWidth - SIDEBAR_WIDTH; // visible chart width
     let scrollLeft: number;
-    if (firstTaskOffset !== null && firstTaskOffset > todayOffset + clientWidth * 0.6) {
-      scrollLeft = Math.min(todayOffset, firstTaskOffset) - clientWidth * 0.15;
+    if (firstTaskOffset !== null && firstTaskOffset > todayOffset + viewW * 0.6) {
+      scrollLeft = Math.min(todayOffset, firstTaskOffset) - viewW * 0.15;
     } else {
-      scrollLeft = todayOffset - clientWidth / 3;
+      scrollLeft = todayOffset - viewW / 3;
     }
     scrollLeft = Math.max(0, scrollLeft);
-    if (chartRef.current) chartRef.current.scrollLeft = scrollLeft;
-    if (headerScrollRef.current) headerScrollRef.current.scrollLeft = scrollLeft;
+    scroller.scrollLeft = scrollLeft;
   }, [rangeStartStr, rangeEndStr, todayOffset, firstTaskOffset]);
 
   const scrollToToday = useCallback(() => {
-    const scrollLeft = todayOffset - (chartRef.current?.clientWidth ?? 0) / 3;
-    chartRef.current?.scrollTo({ left: scrollLeft, behavior: "smooth" });
-    headerScrollRef.current?.scrollTo({ left: scrollLeft, behavior: "smooth" });
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    const viewW = scroller.clientWidth - SIDEBAR_WIDTH;
+    const scrollLeft = Math.max(0, todayOffset - viewW / 3);
+    scroller.scrollTo({ left: scrollLeft, behavior: "smooth" });
   }, [todayOffset]);
 
   const showEventTooltip = useCallback((_event: CalendarEvent, x: number, y: number) => {
@@ -292,32 +292,15 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
   }
 
   async function handlePngExport() {
-    const container = timelineRef.current;
-    const headerScroll = headerScrollRef.current;
-    const bodyWrapper = bodyWrapperRef.current;
-    const sidebar = sidebarRef.current;
-    const chart = chartRef.current;
-    if (!container || !headerScroll || !bodyWrapper || !sidebar || !chart) return;
+    const container = captureRef.current;
+    const scroller = scrollRef.current;
+    if (!container || !scroller) return;
     setExportingPng(true);
     try {
-      await exportTimelineToPng({
-        container,
-        headerScroll,
-        bodyWrapper,
-        sidebar,
-        chart,
-        sidebarWidth: SIDEBAR_WIDTH,
-        totalWidth,
-        totalBodyHeight,
-      });
+      await exportTimelineToPng({ container, scroller });
     } finally {
       setExportingPng(false);
     }
-  }
-
-  function handleChartScroll() {
-    if (chartRef.current && sidebarRef.current) sidebarRef.current.scrollTop = chartRef.current.scrollTop;
-    if (chartRef.current && headerScrollRef.current) headerScrollRef.current.scrollLeft = chartRef.current.scrollLeft;
   }
 
   return (
@@ -387,32 +370,35 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
         </div>
       </div>
 
-      <div ref={timelineRef} className="flex-1 overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex flex-shrink-0">
-          <div className="flex-shrink-0 border-r border-b bg-card flex items-end px-3 pb-1" style={{ width: SIDEBAR_WIDTH }}>
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Member / Task</span>
+      <div ref={scrollRef} className="flex-1 overflow-auto">
+        <div ref={captureRef} className="relative" style={{ width: SIDEBAR_WIDTH + totalWidth }}>
+          {/* Header — pinned to the top while scrolling down */}
+          <div className="sticky top-0 z-30 flex" style={{ width: SIDEBAR_WIDTH + totalWidth }}>
+            <div
+              className="sticky left-0 z-40 flex-shrink-0 border-r border-b bg-card flex items-end px-3 pb-1"
+              style={{ width: SIDEBAR_WIDTH }}
+            >
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Member / Task</span>
+            </div>
+            <div style={{ width: totalWidth }}>
+              <GanttHeader dates={dates} columnWidth={columnWidth} />
+              {team.length > 0 && (
+                <GanttTeamEventStrip
+                  teamEvents={team}
+                  rangeStart={rangeStart}
+                  columnWidth={columnWidth}
+                  totalWidth={totalWidth}
+                  onEventUpdate={onEventUpdate}
+                  onEventDelete={onEventDelete}
+                />
+              )}
+            </div>
           </div>
-          <div ref={headerScrollRef} className="flex-1 overflow-hidden">
-            <GanttHeader dates={dates} columnWidth={columnWidth} />
-            {team.length > 0 && (
-              <GanttTeamEventStrip
-                teamEvents={team}
-                rangeStart={rangeStart}
-                columnWidth={columnWidth}
-                totalWidth={totalWidth}
-                onEventUpdate={onEventUpdate}
-                onEventDelete={onEventDelete}
-              />
-            )}
-          </div>
-        </div>
 
-        {/* Body */}
-        <div ref={bodyWrapperRef} className="flex flex-1 overflow-hidden">
-          {/* Sidebar */}
-          <div className="flex-shrink-0 border-r bg-card" style={{ width: SIDEBAR_WIDTH }}>
-            <div ref={sidebarRef} className="h-full overflow-hidden">
+          {/* Body */}
+          <div className="flex" style={{ width: SIDEBAR_WIDTH + totalWidth }}>
+            {/* Sidebar — pinned to the left while scrolling right */}
+            <div className="sticky left-0 z-20 flex-shrink-0 border-r bg-card" style={{ width: SIDEBAR_WIDTH }}>
               {rows.map((row) => {
                 if (row.kind === "header") {
                   const palette = memberPalettes[row.colorIdx]!;
@@ -490,10 +476,8 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
                 );
               })}
             </div>
-          </div>
 
-          {/* Chart area */}
-          <div ref={chartRef} className="flex-1 overflow-auto" onScroll={handleChartScroll}>
+            {/* Chart area */}
             <div className="relative" style={{ width: totalWidth, minHeight: totalBodyHeight }}>
               {/* Background grid */}
               <div className="absolute inset-0 pointer-events-none flex" style={{ height: totalBodyHeight }}>
