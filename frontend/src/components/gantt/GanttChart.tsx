@@ -28,6 +28,7 @@ interface GanttChartProps {
   onEventUpdate?: (event: CalendarEvent) => void;
   onDeadlineUpdate?: (deadline: Deadline) => void;
   onEventDelete?: (event: CalendarEvent) => void;
+  onDeadlineDelete?: (deadline: Deadline) => void;
 }
 
 const MEMBER_HEADER_HEIGHT = 40;
@@ -93,7 +94,7 @@ type RowItem =
   | { kind: "header"; member: Member; colorIdx: number; taskCount: number }
   | { kind: "task"; task: TaskSetting; colorIdx: number; memberEmail: string };
 
-export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl = "", onTaskUpdate, onOpenTask, onEventUpdate, onDeadlineUpdate, onEventDelete }: GanttChartProps) {
+export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl = "", onTaskUpdate, onOpenTask, onEventUpdate, onDeadlineUpdate, onEventDelete, onDeadlineDelete }: GanttChartProps) {
   const saved = useMemo(() => loadSettings(), []);
   const initialRange = useMemo(() => loadGanttRange(), []);
   const [rangeStartStr, setRangeStartStr] = useState(initialRange.rangeStart);
@@ -541,6 +542,7 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
                   totalHeight={totalBodyHeight}
                   columnWidth={columnWidth}
                   onUpdate={onDeadlineUpdate}
+                  onDelete={onDeadlineDelete}
                 />
               ))}
 

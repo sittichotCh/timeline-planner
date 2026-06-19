@@ -3,7 +3,7 @@ import type { Member, TaskSetting, CalendarEvent, Deadline } from "@/types";
 import { fetchMembers } from "@/api/members";
 import { fetchEvents, updateEvent, deleteEvent } from "@/api/events";
 import { fetchTasks, upsertTask } from "@/api/tasks";
-import { fetchDeadlines, updateDeadline } from "@/api/deadlines";
+import { fetchDeadlines, updateDeadline, deleteDeadline } from "@/api/deadlines";
 import { fetchJiraConfig } from "@/api/jira";
 import { GanttChart } from "@/components/gantt/GanttChart";
 import { MemberPanel } from "@/components/MemberPanel";
@@ -98,6 +98,15 @@ function App() {
     }
   }, []);
 
+  const handleDeadlineDelete = useCallback(async (deadline: Deadline) => {
+    setDeadlines((prev) => prev.filter((d) => d.id !== deadline.id));
+    try {
+      await deleteDeadline(deadline.id);
+    } catch {
+      fetchDeadlines().then(setDeadlines).catch(() => {});
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
@@ -183,6 +192,7 @@ function App() {
             onEventUpdate={handleEventUpdate}
             onDeadlineUpdate={handleDeadlineUpdate}
             onEventDelete={handleEventDelete}
+            onDeadlineDelete={handleDeadlineDelete}
           />
         )}
       </main>

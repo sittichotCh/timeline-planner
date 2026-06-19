@@ -1,7 +1,10 @@
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Deadline } from "@/types";
 import { addDays, parseDate, shiftISODate } from "@/lib/dates";
 import { useDayDrag } from "./useDayDrag";
 import { DragDatePill } from "./DragDatePill";
+import { DeadlineTooltip } from "./DeadlineTooltip";
 
 const deadlineColorMap: Record<string, { line: string; bg: string; text: string }> = {
   red: { line: "bg-red-500", bg: "bg-red-50", text: "text-red-700" },
@@ -22,15 +25,20 @@ interface DeadlineMarkerProps {
   totalHeight: number;
   columnWidth: number;
   onUpdate?: (deadline: Deadline) => void;
+  onDelete?: (deadline: Deadline) => void;
 }
 
-export function DeadlineMarker({ deadline, offset, lane, totalHeight, columnWidth, onUpdate }: DeadlineMarkerProps) {
+export function DeadlineMarker({ deadline, offset, lane, totalHeight, columnWidth, onUpdate, onDelete }: DeadlineMarkerProps) {
   const colors = deadlineColorMap[deadline.color] ?? deadlineColorMap.red!;
   const { dragging, dragOffset, daysMoved, dragPos, onMouseDown } = useDayDrag(
     columnWidth,
     (days) => onUpdate?.({ ...deadline, date: shiftISODate(deadline.date, days) }),
   );
   const liveOffset = offset + (dragging ? dragOffset : 0);
+
+  const [hovered, setHovered] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   return (
     <div className="absolute top-0 z-[8] pointer-events-none" style={{ left: liveOffset, height: totalHeight }}>
@@ -40,11 +48,41 @@ export function DeadlineMarker({ deadline, offset, lane, totalHeight, columnWidt
         className={`absolute left-1 whitespace-nowrap text-[9px] font-semibold px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} shadow-sm pointer-events-auto cursor-grab select-none ${dragging ? "cursor-grabbing ring-1 ring-indigo-400" : ""}`}
         style={{ top: 12 + lane * 18 }}
         onMouseDown={onMouseDown}
+        onMouseEnter={(e) => {
+          if (dragging) return;
+          if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+          const rect = e.currentTarget.getBoundingClientRect();
+          setTooltipPos({ x: rect.left, y: rect.bottom });
+          setHovered(true);
+        }}
+        onMouseLeave={() => {
+          if (dragging) return;
+          hoverTimeout.current = setTimeout(() => setHovered(false), 150);
+        }}
       >
         {deadline.title}
       </div>
       {dragging && (
         <DragDatePill cursor={dragPos} date={addDays(parseDate(deadline.date), daysMoved)} daysMoved={daysMoved} />
+      )}
+      {hovered && createPortal(
+        <div
+          className="fixed z-50"
+          style={{ left: tooltipPos.x, top: tooltipPos.y }}
+          onMouseEnter={() => {
+            if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+          }}
+          onMouseLeave={() => {
+            hoverTimeout.current = setTimeout(() => setHovered(false), 150);
+          }}
+        >
+          <DeadlineTooltip
+            deadline={deadline}
+            position={{ x: 0, y: 0 }}
+            onDelete={onDelete ? () => { onDelete(deadline); setHovered(false); } : undefined}
+          />
+        </div>,
+        document.body,
       )}
     </div>
   );
