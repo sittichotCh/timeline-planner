@@ -227,6 +227,7 @@ function App() {
       )}
       {panel === "import" && (
         <ImportPanel
+          members={members}
           onImported={() => {
             Promise.all([fetchEvents(), fetchDeadlines()])
               .then(([e, d]) => {
