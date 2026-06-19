@@ -33,8 +33,12 @@ per-row control instead of relying on CSV columns.
    rows in the import (not per-row). Default `red`.
 4. **Title/dates are read-only** in the table — taken from the CSV, not edited
    in the grid.
-5. **Title is always the CSV title**, used as-is regardless of event type — no
-   canonical-title substitution (unlike the manual Add-Event form).
+5. **Title comes from the CSV.** For event rows of type `other` (the default)
+   the CSV title is kept as-is. For `leave`/`oncall`/`holiday` the store
+   normalizes the stored title to the type label ("Leave"/"Oncall"/"Holiday") —
+   the app-wide convention enforced in `store.GetEvents`/`CreateEvent`, also used
+   by the manual Add-Event form. To keep a custom title, use type `other`. (The
+   store is reused unchanged, so this convention applies to imported events too.)
 
 ## 3. Current behavior being replaced
 
