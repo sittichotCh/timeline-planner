@@ -76,7 +76,7 @@ export function PersonalEventBars({
               onHideTooltip();
             }}
           >
-            <span className={`text-[10px] font-medium truncate px-1 pointer-events-none ${working ? "text-foreground/70" : "text-red-900/60"}`}>
+            <span className={`text-[10px] font-medium truncate px-1 pointer-events-none ${working ? "text-foreground bg-background/85 rounded" : "text-red-900/60"}`}>
               {event.title}
             </span>
           </div>

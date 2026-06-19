@@ -181,7 +181,11 @@ function TeamEventCap({ item, height, columnWidth, totalWidth, onEventUpdate, on
           onLeave();
         }}
       >
-        {item.ev.title || item.ev.type}
+        {working ? (
+          <span className="bg-background/85 rounded px-1 truncate">{item.ev.title || item.ev.type}</span>
+        ) : (
+          item.ev.title || item.ev.type
+        )}
       </div>
       {dragging && (
         <DragDatePill cursor={dragPos} date={addDays(parseDate(item.ev.start_date), daysMoved)} daysMoved={daysMoved} />
