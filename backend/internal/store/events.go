@@ -183,3 +183,86 @@ func (s *Store) writeEvents(events []model.Event) error {
 	}
 	return s.writeCSV(eventsFile, eventsHeader, rows)
 }
+
+// sameSyncedEvent reports whether two events have identical user-visible content
+// (everything except identity/source bookkeeping). Used to avoid counting an
+// unchanged re-synced event as "updated".
+func sameSyncedEvent(a, b model.Event) bool {
+	return joinEmails(a.MemberEmails) == joinEmails(b.MemberEmails) &&
+		a.Scope == b.Scope &&
+		a.Type == b.Type &&
+		a.Title == b.Title &&
+		a.StartDate == b.StartDate &&
+		a.EndDate == b.EndDate &&
+		a.CountsAsWorkingDay == b.CountsAsWorkingDay
+}
+
+// ReplaceSyncedEvents upserts the events for one calendar source, matched by
+// ExternalUID, and prunes that source's events no longer present. Manual events
+// and events from other sources are left untouched.
+func (s *Store) ReplaceSyncedEvents(sourceID string, incoming []model.Event) (added, updated, removed int, err error) {
+	events, err := s.GetEvents()
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	existing := make(map[string]model.Event)
+	result := make([]model.Event, 0, len(events))
+	for _, e := range events {
+		if e.Source == model.SourceGoogle && e.SourceID == sourceID {
+			existing[e.ExternalUID] = e
+		} else {
+			result = append(result, e) // untouched
+		}
+	}
+
+	seen := make(map[string]struct{}, len(incoming))
+	for _, ne := range incoming {
+		ne.Source = model.SourceGoogle
+		ne.SourceID = sourceID
+		seen[ne.ExternalUID] = struct{}{}
+		if old, ok := existing[ne.ExternalUID]; ok {
+			ne.ID = old.ID // keep a stable id across syncs
+			if !sameSyncedEvent(old, ne) {
+				updated++
+			}
+		} else {
+			ne.ID = genID()
+			added++
+		}
+		result = append(result, ne)
+	}
+	for uid := range existing {
+		if _, ok := seen[uid]; !ok {
+			removed++
+		}
+	}
+
+	if err := s.writeEvents(result); err != nil {
+		return 0, 0, 0, err
+	}
+	return added, updated, removed, nil
+}
+
+// DeleteSyncedEventsBySource removes every google-sourced event for sourceID.
+func (s *Store) DeleteSyncedEventsBySource(sourceID string) (int, error) {
+	events, err := s.GetEvents()
+	if err != nil {
+		return 0, err
+	}
+	kept := make([]model.Event, 0, len(events))
+	removed := 0
+	for _, e := range events {
+		if e.Source == model.SourceGoogle && e.SourceID == sourceID {
+			removed++
+			continue
+		}
+		kept = append(kept, e)
+	}
+	if removed > 0 {
+		if err := s.writeEvents(kept); err != nil {
+			return 0, err
+		}
+	}
+	return removed, nil
+}
