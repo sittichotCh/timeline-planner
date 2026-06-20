@@ -115,3 +115,42 @@ func TestDeleteSyncedEventsBySource(t *testing.T) {
 		t.Fatalf("want 0 events, got %d", len(all))
 	}
 }
+
+func TestReplaceSyncedEventsDedupesDuplicateUID(t *testing.T) {
+	s := newTestStore(t)
+	// Two incoming events share a UID; only one record should be stored.
+	a, _, _, err := s.ReplaceSyncedEvents("src1", []model.Event{
+		syncedEvent("dup@g", "a@co.com", "2026-06-10"),
+		syncedEvent("dup@g", "a@co.com", "2026-06-11"),
+	})
+	if err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+	if a != 1 {
+		t.Fatalf("want add=1 for deduped UID, got %d", a)
+	}
+	all, _ := s.GetEvents()
+	if len(all) != 1 {
+		t.Fatalf("want 1 stored event after dedup, got %d", len(all))
+	}
+}
+
+func TestReplaceSyncedEventsEmptyIncomingPrunesAll(t *testing.T) {
+	s := newTestStore(t)
+	if _, _, _, err := s.ReplaceSyncedEvents("src1", []model.Event{
+		syncedEvent("u1@g", "a@co.com", "2026-06-10"),
+		syncedEvent("u2@g", "b@co.com", "2026-06-11"),
+	}); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	_, _, removed, err := s.ReplaceSyncedEvents("src1", []model.Event{})
+	if err != nil {
+		t.Fatalf("prune-all: %v", err)
+	}
+	if removed != 2 {
+		t.Fatalf("want removed=2, got %d", removed)
+	}
+	if all, _ := s.GetEvents(); len(all) != 0 {
+		t.Fatalf("want 0 events after empty sync, got %d", len(all))
+	}
+}

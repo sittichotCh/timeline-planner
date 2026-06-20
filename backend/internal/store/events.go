@@ -218,6 +218,9 @@ func (s *Store) ReplaceSyncedEvents(sourceID string, incoming []model.Event) (ad
 
 	seen := make(map[string]struct{}, len(incoming))
 	for _, ne := range incoming {
+		if _, dup := seen[ne.ExternalUID]; dup {
+			continue // one record per UID; ignore duplicate UIDs within a single feed
+		}
 		ne.Source = model.SourceGoogle
 		ne.SourceID = sourceID
 		seen[ne.ExternalUID] = struct{}{}
@@ -238,6 +241,9 @@ func (s *Store) ReplaceSyncedEvents(sourceID string, incoming []model.Event) (ad
 		}
 	}
 
+	if added == 0 && updated == 0 && removed == 0 {
+		return 0, 0, 0, nil
+	}
 	if err := s.writeEvents(result); err != nil {
 		return 0, 0, 0, err
 	}
