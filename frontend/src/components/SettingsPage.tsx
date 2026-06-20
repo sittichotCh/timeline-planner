@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CalendarSource, CalendarSyncResult, EventType } from "@/types";
 import {
   fetchCalendarSources,
@@ -27,6 +27,7 @@ const eventTypes: EventType[] = ["oncall", "leave", "holiday", "other"];
 
 interface DraftRow {
   id?: string;
+  _clientId?: string;   // stable client-side key for unsaved rows
   name: string;
   url: string;
   event_type: EventType;
@@ -39,6 +40,7 @@ function toDraft(src: CalendarSource): DraftRow {
 
 export function SettingsPage({ onEventsChanged }: SettingsPageProps) {
   const [rows, setRows] = useState<DraftRow[]>([]);
+  const clientIdSeq = useRef(0);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CalendarSyncResult | null>(null);
@@ -54,7 +56,10 @@ export function SettingsPage({ onEventsChanged }: SettingsPageProps) {
   }
 
   function addRow() {
-    setRows((prev) => [...prev, { name: "", url: "", event_type: "oncall" }]);
+    setRows((prev) => [
+      ...prev,
+      { _clientId: `new-${clientIdSeq.current++}`, name: "", url: "", event_type: "oncall" },
+    ]);
   }
 
   async function saveRow(index: number) {
@@ -154,7 +159,7 @@ export function SettingsPage({ onEventsChanged }: SettingsPageProps) {
 
       <div className="space-y-3">
         {rows.map((row, i) => (
-          <div key={row.id ?? `new-${i}`} className="rounded-lg border p-3 space-y-2">
+          <div key={row.id ?? row._clientId ?? `idx-${i}`} className="rounded-lg border p-3 space-y-2">
             <div className="grid grid-cols-[1fr_auto] gap-2">
               <div className="space-y-1">
                 <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Name</Label>
