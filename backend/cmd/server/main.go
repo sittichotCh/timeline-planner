@@ -84,6 +84,16 @@ func main() {
 			jira.GET("/config", h.Config)
 			jira.POST("/sync", h.Sync)
 		}
+
+		calendars := api.Group("/calendar-sources")
+		{
+			h := handler.NewCalendarSources(yamlStore)
+			calendars.GET("", h.List)
+			calendars.POST("", h.Create)
+			calendars.POST("/sync", h.SyncAll)
+			calendars.PUT("/:id", h.Update)
+			calendars.DELETE("/:id", h.Delete)
+		}
 	}
 
 	r.GET("/health", func(c *gin.Context) {
