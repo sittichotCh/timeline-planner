@@ -64,6 +64,7 @@ export function SettingsPage({ onEventsChanged }: SettingsPageProps) {
 
   async function saveRow(index: number) {
     const row = rows[index];
+    if (!row) return;
     if (!row.name.trim() || !row.url.trim()) {
       setError("Name and URL are required");
       return;
@@ -94,6 +95,7 @@ export function SettingsPage({ onEventsChanged }: SettingsPageProps) {
 
   async function removeRow(index: number) {
     const row = rows[index];
+    if (!row) return;
     if (row.id) {
       try {
         await deleteCalendarSource(row.id);

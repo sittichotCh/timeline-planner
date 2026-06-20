@@ -13,10 +13,12 @@ import { TaskPage } from "@/components/TaskPage";
 import { TaskEditModal } from "@/components/TaskEditModal";
 import { DeadlinePanel } from "@/components/DeadlinePanel";
 import { ImportPage } from "@/components/ImportPage";
+import { SettingsPage } from "@/components/SettingsPage";
+import { syncCalendars } from "@/api/calendarSources";
 import { Button } from "@/components/ui/button";
-import { Users, CalendarDays, ClipboardCheck, RefreshCw, Flag, GanttChartSquare, Upload } from "lucide-react";
+import { Users, CalendarDays, ClipboardCheck, RefreshCw, Flag, GanttChartSquare, Upload, Settings } from "lucide-react";
 
-type PageView = "timeline" | "tasks" | "jira" | "import";
+type PageView = "timeline" | "tasks" | "jira" | "import" | "settings";
 type SlidePanel = "members" | "events" | "deadlines" | null;
 
 const pageItems: { key: PageView; label: string; icon: typeof Users }[] = [
@@ -24,6 +26,7 @@ const pageItems: { key: PageView; label: string; icon: typeof Users }[] = [
   { key: "tasks", label: "Tasks", icon: ClipboardCheck },
   { key: "jira", label: "Jira Sync", icon: RefreshCw },
   { key: "import", label: "Import", icon: Upload },
+  { key: "settings", label: "Settings", icon: Settings },
 ];
 
 const panelItems: { key: "members" | "events" | "deadlines"; label: string; icon: typeof Users }[] = [
@@ -58,6 +61,15 @@ function App() {
       })
       .finally(() => setLoading(false));
     fetchJiraConfig().then((cfg) => setJiraBaseUrl(cfg.baseUrl)).catch(() => {});
+  }, []);
+
+  // Auto-sync calendars on load, then refresh events. Non-blocking; failures
+  // are ignored (the last successful sync's events are already shown).
+  useEffect(() => {
+    syncCalendars()
+      .then(() => fetchEvents())
+      .then(setEvents)
+      .catch(() => {});
   }, []);
 
   const handleTaskUpdate = useCallback(async (updated: TaskSetting) => {
@@ -190,6 +202,12 @@ function App() {
                   setDeadlines(d);
                 })
                 .catch(() => {});
+            }}
+          />
+        ) : page === "settings" ? (
+          <SettingsPage
+            onEventsChanged={() => {
+              fetchEvents().then(setEvents).catch(() => {});
             }}
           />
         ) : (
