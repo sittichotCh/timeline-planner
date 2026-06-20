@@ -24,11 +24,13 @@ interface DeadlineMarkerProps {
   /** Full body height, so the line spans every row. */
   totalHeight: number;
   columnWidth: number;
+  /** Px from the scroll-container top to the bottom of the sticky header, so the label sticks just below it. */
+  headerOffset: number;
   onUpdate?: (deadline: Deadline) => void;
   onDelete?: (deadline: Deadline) => void;
 }
 
-export function DeadlineMarker({ deadline, offset, lane, totalHeight, columnWidth, onUpdate, onDelete }: DeadlineMarkerProps) {
+export function DeadlineMarker({ deadline, offset, lane, totalHeight, columnWidth, headerOffset, onUpdate, onDelete }: DeadlineMarkerProps) {
   const colors = deadlineColorMap[deadline.color] ?? deadlineColorMap.red!;
   const { dragging, dragOffset, daysMoved, dragPos, onMouseDown } = useDayDrag(
     columnWidth,
@@ -42,11 +44,11 @@ export function DeadlineMarker({ deadline, offset, lane, totalHeight, columnWidt
 
   return (
     <div className="absolute top-0 z-[8] pointer-events-none" style={{ left: liveOffset, height: totalHeight }}>
-      <div className={`w-0.5 h-full ${colors.line} opacity-60`} style={{ marginLeft: -1 }} />
-      <div className={`absolute -top-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full ${colors.line} ring-2 ring-white shadow-sm`} />
+      <div className={`absolute top-0 bottom-0 w-0.5 ${colors.line} opacity-60`} style={{ marginLeft: -1 }} />
+      <div className={`absolute -top-0.5 left-0 -translate-x-1/2 w-2.5 h-2.5 rounded-full ${colors.line} ring-2 ring-white shadow-sm`} />
       <div
-        className={`absolute left-1 whitespace-nowrap text-[9px] font-semibold px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} shadow-sm pointer-events-auto cursor-grab select-none ${dragging ? "cursor-grabbing ring-1 ring-indigo-400" : ""}`}
-        style={{ top: 12 + lane * 18 }}
+        className={`ml-1 whitespace-nowrap text-[9px] font-semibold px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} shadow-sm pointer-events-auto cursor-grab select-none ${dragging ? "cursor-grabbing ring-1 ring-indigo-400" : ""}`}
+        style={{ position: "sticky", top: headerOffset + 12 + lane * 18, marginTop: 12 + lane * 18 }}
         onMouseDown={onMouseDown}
         onMouseEnter={(e) => {
           if (dragging) return;

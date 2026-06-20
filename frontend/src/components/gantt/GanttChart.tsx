@@ -109,7 +109,21 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
   const eventHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const captureRef = useRef<HTMLDivElement>(null);
+  const headerRowRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
   const [exportingPng, setExportingPng] = useState(false);
+
+  // Measure the sticky header's height so deadline labels can stick just below
+  // it. The ResizeObserver fires when the team-event strip appears/disappears or
+  // its lane count changes, so no extra deps are needed.
+  useEffect(() => {
+    const el = headerRowRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setHeaderHeight(el.offsetHeight));
+    ro.observe(el);
+    setHeaderHeight(el.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -373,7 +387,7 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
       <div ref={scrollRef} className="flex-1 overflow-auto">
         <div ref={captureRef} className="relative" style={{ width: SIDEBAR_WIDTH + totalWidth }}>
           {/* Header — pinned to the top while scrolling down */}
-          <div className="sticky top-0 z-30 flex" style={{ width: SIDEBAR_WIDTH + totalWidth }}>
+          <div ref={headerRowRef} className="sticky top-0 z-30 flex" style={{ width: SIDEBAR_WIDTH + totalWidth }}>
             <div
               className="sticky left-0 z-40 flex-shrink-0 border-r border-b bg-card flex items-end px-3 pb-1"
               style={{ width: SIDEBAR_WIDTH }}
@@ -525,6 +539,7 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
                   lane={lane}
                   totalHeight={totalBodyHeight}
                   columnWidth={columnWidth}
+                  headerOffset={headerHeight}
                   onUpdate={onDeadlineUpdate}
                   onDelete={onDeadlineDelete}
                 />
