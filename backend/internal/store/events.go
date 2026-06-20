@@ -12,7 +12,7 @@ import (
 
 const eventsFile = "events.csv"
 
-var eventsHeader = []string{"id", "member_emails", "scope", "type", "title", "start_date", "end_date", "counts_as_working_day"}
+var eventsHeader = []string{"id", "member_emails", "scope", "type", "title", "start_date", "end_date", "counts_as_working_day", "source", "source_id", "external_uid"}
 
 func genID() string {
 	b := make([]byte, 8)
@@ -53,11 +53,27 @@ func parseEventRow(row []string) model.Event {
 	if len(row) >= 8 {
 		e.CountsAsWorkingDay = strings.EqualFold(strings.TrimSpace(row[7]), "true")
 	}
+	if len(row) >= 9 {
+		e.Source = strings.TrimSpace(row[8])
+	}
+	if len(row) >= 10 {
+		e.SourceID = strings.TrimSpace(row[9])
+	}
+	if len(row) >= 11 {
+		e.ExternalUID = strings.TrimSpace(row[10])
+	}
+	if e.Source == "" {
+		e.Source = model.SourceManual
+	}
 	return e
 }
 
 func eventToRow(e model.Event) []string {
-	return []string{e.ID, joinEmails(e.MemberEmails), string(e.Scope), string(e.Type), e.Title, e.StartDate, e.EndDate, strconv.FormatBool(e.CountsAsWorkingDay)}
+	source := e.Source
+	if source == "" {
+		source = model.SourceManual
+	}
+	return []string{e.ID, joinEmails(e.MemberEmails), string(e.Scope), string(e.Type), e.Title, e.StartDate, e.EndDate, strconv.FormatBool(e.CountsAsWorkingDay), source, e.SourceID, e.ExternalUID}
 }
 
 func (s *Store) GetEvents() ([]model.Event, error) {
