@@ -59,17 +59,14 @@ function App() {
         setEvents(e);
         setDeadlines(d);
       })
-      .finally(() => setLoading(false));
-    fetchJiraConfig().then((cfg) => setJiraBaseUrl(cfg.baseUrl)).catch(() => {});
-  }, []);
-
-  // Auto-sync calendars on load, then refresh events. Non-blocking; failures
-  // are ignored (the last successful sync's events are already shown).
-  useEffect(() => {
-    syncCalendars()
+      .finally(() => setLoading(false))
+      // Auto-sync calendars AFTER the initial load so the post-sync events are
+      // the authoritative last write (avoids a race between the two writers).
+      .then(() => syncCalendars())
       .then(() => fetchEvents())
       .then(setEvents)
       .catch(() => {});
+    fetchJiraConfig().then((cfg) => setJiraBaseUrl(cfg.baseUrl)).catch(() => {});
   }, []);
 
   const handleTaskUpdate = useCallback(async (updated: TaskSetting) => {
