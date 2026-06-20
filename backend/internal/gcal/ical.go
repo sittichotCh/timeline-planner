@@ -80,7 +80,7 @@ func unfoldLines(ics string) []string {
 			continue
 		}
 		if (raw[0] == ' ' || raw[0] == '\t') && len(out) > 0 {
-			out[len(out)-1] += raw[0:]
+			out[len(out)-1] += raw[1:]
 			continue
 		}
 		out = append(out, raw)

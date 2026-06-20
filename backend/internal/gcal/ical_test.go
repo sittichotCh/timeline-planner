@@ -74,7 +74,7 @@ func TestParseICSDates(t *testing.T) {
 func TestUnfoldLines(t *testing.T) {
 	// A value folded across two lines (continuation starts with a space).
 	got := unfoldLines("SUMMARY:Hello\r\n World\r\nUID:x\r\n")
-	if len(got) != 2 || got[0] != "SUMMARY:Hello World" || got[1] != "UID:x" {
+	if len(got) != 2 || got[0] != "SUMMARY:HelloWorld" || got[1] != "UID:x" {
 		t.Fatalf("unfold failed: %#v", got)
 	}
 }
