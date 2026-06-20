@@ -60,6 +60,23 @@ const capFill: Record<string, string> = {
 - `frontend/src/components/gantt/GanttMergedEventRow.tsx` — `bandFill` opacity `/40` → `/25`.
 - `frontend/src/components/gantt/GanttTeamEventStrip.tsx` — `capFill` add `/60`.
 
+## 5a. Addendum (2026-06-20, post-implementation correction)
+
+In-browser verification showed the band/cap **solid** fills (§3) apply to only
+the non-working-day team events — **1 of 9** in the real data. The visually
+dominant team-event background is the **diagonal hatch** used by working-day
+events (`counts_as_working_day = true`), generated in
+`frontend/src/lib/eventHatch.ts`. So the §3 change alone "looked like no
+change." Corrected scope adds:
+
+- **`frontend/src/lib/eventHatch.ts` — `HATCH_STRIPE`:** lower the stripe alpha
+  `0.55` → `0.20` on all four types (`leave`/`oncall`/`holiday`/`other`). This
+  fades the dominant working-day band **and** cap backgrounds (both call
+  `hatchBackground`). The §3 solid-fill reductions are **kept** for consistency
+  across the few non-working-day events.
+
+Final landed values: hatch alpha `0.20`, solid band `/25`, solid caps `/60`.
+
 ## 6. Out of scope
 
 - The working-day hatch variants (caps and bands).

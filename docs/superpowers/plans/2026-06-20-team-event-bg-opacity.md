@@ -127,6 +127,19 @@ With the dev servers running (see Setup), use Playwright MCP on the **Timeline**
 
 ---
 
+## Addendum (post-implementation correction)
+
+Verification revealed the solid `bandFill`/`capFill` (Steps 1–2) cover only
+non-working-day team events (1 of 9 in real data); the dominant team-event
+background is the working-day **hatch**. Added change:
+
+- [x] **`frontend/src/lib/eventHatch.ts` — `HATCH_STRIPE` alpha `0.55` → `0.20`**
+  (all four types). Fades the dominant working-day band + cap backgrounds.
+  Steps 1–2 solid-fill reductions kept. Verified live (computed hatch alpha
+  `0.2`); build + lint clean. Committed separately from Steps 1–2.
+
+Final landed: hatch `0.20`, solid band `/25`, solid caps `/60`.
+
 ## Self-review notes (coverage check against the spec)
 
 - Spec §3.1 (band `/40`→`/25`, all four; `bandBorder` unchanged) → Step 1.
