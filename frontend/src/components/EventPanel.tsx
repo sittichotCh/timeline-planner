@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Calendar, Users, User } from "lucide-react";
+import { Plus, Calendar, Users, User, CalendarSync } from "lucide-react";
 
 interface EventPanelProps {
   events: CalendarEvent[];
@@ -192,6 +192,11 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
                   <div className={`w-2 h-8 rounded-full flex-shrink-0 ${typeInfo?.color ?? "bg-gray-400"}`} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start gap-1.5">
+                      {event.source === "google" && (
+                        <span title="Synced from Google Calendar" className="flex-shrink-0 mt-0.5">
+                          <CalendarSync className="size-3.5 text-muted-foreground" aria-label="Synced from Google Calendar" />
+                        </span>
+                      )}
                       <span className="text-[13px] font-medium break-words">
                         {event.title || event.type}
                       </span>
@@ -212,10 +217,12 @@ export function EventPanel({ events, members, onEventsChange, onClose }: EventPa
                     </div>
                   </div>
                 </div>
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/85 backdrop-blur-sm rounded-md p-0.5 shadow-sm">
-                  <Button variant="ghost" size="xs" onClick={() => startEdit(event)}>Edit</Button>
-                  <Button variant="destructive" size="xs" onClick={() => handleDelete(event.id)}>Delete</Button>
-                </div>
+                {event.source !== "google" && (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/85 backdrop-blur-sm rounded-md p-0.5 shadow-sm">
+                    <Button variant="ghost" size="xs" onClick={() => startEdit(event)}>Edit</Button>
+                    <Button variant="destructive" size="xs" onClick={() => handleDelete(event.id)}>Delete</Button>
+                  </div>
+                )}
               </div>
             );
           })}
