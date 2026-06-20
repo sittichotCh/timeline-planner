@@ -3,10 +3,10 @@
 // see-through hatch rather than a solid band. Keyed by event type so it keeps
 // the type's colour.
 const HATCH_STRIPE: Record<string, string> = {
-  leave: "rgba(249, 115, 22, 0.55)",
-  oncall: "rgba(239, 68, 68, 0.55)",
-  holiday: "rgba(245, 158, 11, 0.55)",
-  other: "rgba(107, 114, 128, 0.55)",
+  leave: "rgba(249, 115, 22, 0.20)",
+  oncall: "rgba(239, 68, 68, 0.20)",
+  holiday: "rgba(245, 158, 11, 0.20)",
+  other: "rgba(107, 114, 128, 0.20)",
 };
 
 export function hatchBackground(type: string): string {
