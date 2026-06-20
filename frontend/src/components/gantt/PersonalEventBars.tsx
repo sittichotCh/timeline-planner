@@ -45,6 +45,10 @@ export function PersonalEventBars({
   const clippedLeft = Math.max(0, left);
   const clippedWidth = Math.min(left + width, totalWidth) - clippedLeft;
 
+  // Synced (Google Calendar) events are owned by sync — a drag would just be
+  // reverted on the next sync, so lock them (no drag, no grab cursor).
+  const locked = event.source === "google";
+
   return (
     <>
       {event.member_emails.map((email) => {
@@ -57,7 +61,7 @@ export function PersonalEventBars({
         return (
           <div
             key={`${event.id}-${email}`}
-            className={`absolute z-[3] flex items-center justify-center overflow-hidden cursor-grab select-none ${dragging ? "opacity-90 cursor-grabbing z-20" : ""}`}
+            className={`absolute z-[3] flex items-center justify-center overflow-hidden select-none ${locked ? "cursor-default" : "cursor-grab"} ${dragging ? "opacity-90 cursor-grabbing z-20" : ""}`}
             style={{
               left: clippedLeft,
               width: clippedWidth,
@@ -65,7 +69,7 @@ export function PersonalEventBars({
               height: range.height,
               ...fillStyle,
             }}
-            onMouseDown={onMouseDown}
+            onMouseDown={locked ? undefined : onMouseDown}
             onMouseEnter={(e) => {
               if (dragging) return;
               const rect = e.currentTarget.getBoundingClientRect();

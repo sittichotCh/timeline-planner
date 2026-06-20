@@ -617,7 +617,7 @@ export function GanttChart({ members, tasks, events, deadlines = [], jiraBaseUrl
           <EventTooltip
             event={hoveredEvent}
             position={{ x: 0, y: 0 }}
-            onDelete={onEventDelete ? () => { if (hoveredEvent) { onEventDelete(hoveredEvent); setHoveredEvent(null); } } : undefined}
+            onDelete={onEventDelete && hoveredEvent?.source !== "google" ? () => { if (hoveredEvent) { onEventDelete(hoveredEvent); setHoveredEvent(null); } } : undefined}
           />
         </div>,
         document.body,
