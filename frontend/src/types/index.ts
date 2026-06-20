@@ -20,6 +20,10 @@ export interface CalendarEvent {
   start_date: string;
   end_date: string;
   counts_as_working_day: boolean;
+  /** "manual" (user-created) or "google" (calendar sync). Optional on writes. */
+  source?: string;
+  source_id?: string;
+  external_uid?: string;
 }
 
 export interface TaskSetting {
@@ -77,4 +81,30 @@ export interface ImportResult {
   imported_deadlines: number;
   skipped_duplicates: number;
   errors: ImportRowError[];
+}
+
+export interface CalendarSource {
+  id: string;
+  name: string;
+  url: string;
+  event_type: EventType;
+  last_synced_at?: string;
+}
+
+export interface CalendarSyncSourceResult {
+  source_id: string;
+  name: string;
+  added: number;
+  updated: number;
+  removed: number;
+  skipped: number;
+  error?: string;
+}
+
+export interface CalendarSyncResult {
+  sources: CalendarSyncSourceResult[];
+  added: number;
+  updated: number;
+  removed: number;
+  skipped: number;
 }
