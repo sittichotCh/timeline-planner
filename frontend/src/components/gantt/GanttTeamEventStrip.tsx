@@ -36,10 +36,10 @@ const capBase: Record<string, string> = {
 };
 
 const capFill: Record<string, string> = {
-  leave: "bg-orange-100",
-  oncall: "bg-red-100",
-  holiday: "bg-amber-100",
-  other: "bg-gray-100",
+  leave: "bg-orange-100/60",
+  oncall: "bg-red-100/60",
+  holiday: "bg-amber-100/60",
+  other: "bg-gray-100/60",
 };
 
 const LANE_HEIGHT = 20;

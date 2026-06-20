@@ -23,10 +23,10 @@ interface GanttMergedEventRowProps {
 // the date range a team-wide event covers. The readable label + tooltip live in
 // the top strip (GanttTeamEventStrip), so the band itself is decoration only.
 const bandFill: Record<string, string> = {
-  leave: "bg-orange-200/40",
-  oncall: "bg-red-200/40",
-  holiday: "bg-amber-200/40",
-  other: "bg-gray-200/40",
+  leave: "bg-orange-200/25",
+  oncall: "bg-red-200/25",
+  holiday: "bg-amber-200/25",
+  other: "bg-gray-200/25",
 };
 
 const bandBorder: Record<string, string> = {
