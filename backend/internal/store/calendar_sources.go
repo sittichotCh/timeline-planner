@@ -2,13 +2,15 @@ package store
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"timeline-planner/internal/model"
 )
 
 const calendarSourcesFile = "calendar_sources.csv"
 
-var calendarSourcesHeader = []string{"id", "name", "url", "event_type", "last_synced_at"}
+var calendarSourcesHeader = []string{"id", "name", "url", "event_type", "last_synced_at", "counts_as_working_day"}
 
 func parseCalendarSourceRow(row []string) model.CalendarSource {
 	src := model.CalendarSource{
@@ -20,11 +22,14 @@ func parseCalendarSourceRow(row []string) model.CalendarSource {
 	if len(row) >= 5 {
 		src.LastSyncedAt = row[4]
 	}
+	if len(row) >= 6 {
+		src.CountsAsWorkingDay = strings.EqualFold(strings.TrimSpace(row[5]), "true")
+	}
 	return src
 }
 
 func calendarSourceToRow(src model.CalendarSource) []string {
-	return []string{src.ID, src.Name, src.URL, string(src.EventType), src.LastSyncedAt}
+	return []string{src.ID, src.Name, src.URL, string(src.EventType), src.LastSyncedAt, strconv.FormatBool(src.CountsAsWorkingDay)}
 }
 
 func (s *Store) GetCalendarSources() ([]model.CalendarSource, error) {
