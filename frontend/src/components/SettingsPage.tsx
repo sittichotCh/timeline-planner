@@ -31,11 +31,19 @@ interface DraftRow {
   name: string;
   url: string;
   event_type: EventType;
+  counts_as_working_day: boolean;
   last_synced_at?: string;
 }
 
 function toDraft(src: CalendarSource): DraftRow {
-  return { id: src.id, name: src.name, url: src.url, event_type: src.event_type, last_synced_at: src.last_synced_at };
+  return {
+    id: src.id,
+    name: src.name,
+    url: src.url,
+    event_type: src.event_type,
+    counts_as_working_day: src.counts_as_working_day,
+    last_synced_at: src.last_synced_at,
+  };
 }
 
 export function SettingsPage({ onEventsChanged }: SettingsPageProps) {
@@ -58,7 +66,7 @@ export function SettingsPage({ onEventsChanged }: SettingsPageProps) {
   function addRow() {
     setRows((prev) => [
       ...prev,
-      { _clientId: `new-${clientIdSeq.current++}`, name: "", url: "", event_type: "oncall" },
+      { _clientId: `new-${clientIdSeq.current++}`, name: "", url: "", event_type: "oncall", counts_as_working_day: false },
     ]);
   }
 
@@ -77,6 +85,7 @@ export function SettingsPage({ onEventsChanged }: SettingsPageProps) {
           name: row.name,
           url: row.url,
           event_type: row.event_type,
+          counts_as_working_day: row.counts_as_working_day,
           last_synced_at: row.last_synced_at,
         });
         updateRow(index, toDraft(saved));
@@ -85,6 +94,7 @@ export function SettingsPage({ onEventsChanged }: SettingsPageProps) {
           name: row.name,
           url: row.url,
           event_type: row.event_type,
+          counts_as_working_day: row.counts_as_working_day,
         });
         updateRow(index, toDraft(saved));
       }
@@ -195,6 +205,15 @@ export function SettingsPage({ onEventsChanged }: SettingsPageProps) {
                 className="h-8 !text-[12px]"
               />
             </div>
+            <label className="flex items-center gap-2 text-[12px] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 accent-indigo-600"
+                checked={row.counts_as_working_day}
+                onChange={(e) => updateRow(i, { counts_as_working_day: e.target.checked })}
+              />
+              <span className="font-medium">Counts as a working day</span>
+            </label>
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-muted-foreground">
                 {row.last_synced_at ? `Last synced ${new Date(row.last_synced_at).toLocaleString()}` : "Not synced yet"}

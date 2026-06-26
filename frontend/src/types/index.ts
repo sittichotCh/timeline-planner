@@ -88,6 +88,7 @@ export interface CalendarSource {
   name: string;
   url: string;
   event_type: EventType;
+  counts_as_working_day: boolean;
   last_synced_at?: string;
 }
 
