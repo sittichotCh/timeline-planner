@@ -13,12 +13,6 @@ func extractEmail(s string) string {
 	return emailRe.FindString(s)
 }
 
-// countsAsWorkingDay derives the working-day flag from an event type: leave and
-// holiday do not count; oncall and anything else do.
-func countsAsWorkingDay(t model.EventType) bool {
-	return t != model.EventLeave && t != model.EventHoliday
-}
-
 // titleFor returns the title a synced event should carry. It mirrors the store's
 // canonical-title normalization (GetEvents forces "Leave"/"Oncall"/"Holiday" for
 // those types), so the title stays stable across syncs; "other" keeps the
@@ -39,7 +33,6 @@ func BuildEvents(src model.CalendarSource, ics string, knownEmails map[string]bo
 		return nil, 0, err
 	}
 	title := titleFor(src)
-	cwd := countsAsWorkingDay(src.EventType)
 
 	var out []model.Event
 	skipped := 0
@@ -60,7 +53,7 @@ func BuildEvents(src model.CalendarSource, ics string, knownEmails map[string]bo
 			Title:              title,
 			StartDate:          r.StartDate,
 			EndDate:            r.EndDate,
-			CountsAsWorkingDay: cwd,
+			CountsAsWorkingDay: src.CountsAsWorkingDay,
 			Source:             model.SourceGoogle,
 			SourceID:           src.ID,
 			ExternalUID:        r.UID,

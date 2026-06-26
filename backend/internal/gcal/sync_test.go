@@ -21,7 +21,7 @@ func TestExtractEmail(t *testing.T) {
 }
 
 func TestBuildEventsMatchesAndSkips(t *testing.T) {
-	src := model.CalendarSource{ID: "src1", Name: "POS On-call", URL: "x", EventType: model.EventOncall}
+	src := model.CalendarSource{ID: "src1", Name: "POS On-call", URL: "x", EventType: model.EventOncall, CountsAsWorkingDay: true}
 	known := map[string]bool{"yossawat.s@ext-lmwn.com": true, "pansa.h@lmwn.com": true}
 	// amornthep is NOT known -> skipped; "New Event" has no email -> skipped;
 	// recur has RRULE -> skipped.
@@ -45,7 +45,7 @@ func TestBuildEventsMatchesAndSkips(t *testing.T) {
 		t.Errorf("want exactly one member email, got %v", e.MemberEmails)
 	}
 	if e.Type != model.EventOncall || !e.CountsAsWorkingDay {
-		t.Errorf("oncall should count as a working day: %+v", e)
+		t.Errorf("working day should follow the source flag (true here): %+v", e)
 	}
 	// Title follows the store's canonical rule (oncall -> "Oncall").
 	if e.Title != "Oncall" {
@@ -67,8 +67,8 @@ func TestBuildEventsOtherTypeUsesSourceName(t *testing.T) {
 		if e.Title != "WFH Calendar" {
 			t.Errorf("other-type events use the source name as title, got %q", e.Title)
 		}
-		if e.CountsAsWorkingDay != true {
-			t.Errorf("other type should count as a working day")
+		if e.CountsAsWorkingDay {
+			t.Errorf("working day should follow the source flag (false here), got true")
 		}
 	}
 }
